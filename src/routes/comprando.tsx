@@ -1,7 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { Reveal } from "@/components/casa/chrome";
-import { BuyDialog } from "@/components/casa/dialogs";
+import { BuyDialog, PurchaseDialog } from "@/components/casa/dialogs";
+import { ReceiptDialog } from "@/components/casa/receipt-dialog";
 import { Button, EmptyState, PageSkeleton } from "@/components/ui/controls";
 import { formatMoney, formatQty, monthTitle } from "@/lib/casa/format";
 import { lineEstimate, summarizeMonth } from "@/lib/casa/logic";
@@ -26,6 +27,9 @@ function Shop() {
   const budget = useCasa((state) => state.settings.monthlyBudget);
   const setStatus = useCasa((state) => state.setStatus);
   const [buying, setBuying] = useState<ShopLine | null>(null);
+  const [spent, setSpent] = useState(false);
+  const [spentName, setSpentName] = useState("");
+  const [scan, setScan] = useState(false);
   const [showDone, setShowDone] = useState(false);
   const totals = summarizeMonth(lines, viewMonth, budget);
   const mine = useMemo(
@@ -44,6 +48,12 @@ function Shop() {
         {pending.length === 0 ? "Nada pendente neste mês." : `${pending.length} ${pending.length === 1 ? "item falta" : "itens faltam"}.`}
       </p>
 
+      <div className="mt-4 grid grid-cols-2 gap-2">
+        <Button onClick={() => { setSpentName(""); setSpent(true); }}>Comprei agora</Button>
+        <Button variant="secondary" onClick={() => setScan(true)}>
+          Escanear nota
+        </Button>
+      </div>
       {pending.length === 0 ? (
         <div className="mt-5">
           <EmptyState title="Lista em dia" detail="Quando faltar algum item, ele aparece aqui." />
@@ -100,6 +110,15 @@ function Shop() {
         ) : null}
       </div>
       <BuyDialog line={buying} onOpenChange={(open) => !open && setBuying(null)} />
+      <PurchaseDialog open={spent} initialName={spentName} onOpenChange={setSpent} />
+      <ReceiptDialog
+        open={scan}
+        onOpenChange={setScan}
+        onProduct={(name) => {
+          setSpentName(name);
+          setSpent(true);
+        }}
+      />
     </Reveal>
   );
 }

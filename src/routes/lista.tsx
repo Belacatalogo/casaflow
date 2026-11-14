@@ -3,7 +3,8 @@ import { Check, Pencil, Plus, Search } from "lucide-react";
 import { useMemo, useState } from "react";
 import { MonthSwitcher, Reveal } from "@/components/casa/chrome";
 import { CategoryGlyph } from "@/components/casa/icons";
-import { AddDialog, BuyDialog, PlanDialog } from "@/components/casa/dialogs";
+import { AddDialog, BuyDialog, PlanDialog, PurchaseDialog } from "@/components/casa/dialogs";
+import { ReceiptDialog } from "@/components/casa/receipt-dialog";
 import { Button, Card, EmptyState, PageSkeleton, fieldClass } from "@/components/ui/controls";
 import { formatMoney, formatQty } from "@/lib/casa/format";
 import { lineActual, lineEstimate, summarizeMonth } from "@/lib/casa/logic";
@@ -32,6 +33,9 @@ function Lista() {
   const generateMonth = useCasa((state) => state.generateMonth);
   const [query, setQuery] = useState("");
   const [adding, setAdding] = useState(false);
+  const [spent, setSpent] = useState(false);
+  const [spentName, setSpentName] = useState("");
+  const [scan, setScan] = useState(false);
   const [buying, setBuying] = useState<ShopLine | null>(null);
   const [editing, setEditing] = useState<ShopLine | null>(null);
   const totals = summarizeMonth(lines, viewMonth, settings.monthlyBudget);
@@ -76,7 +80,11 @@ function Lista() {
         <input className={cn(fieldClass, "rounded-full pl-10")} placeholder="Buscar na lista" value={query} onChange={(event) => setQuery(event.target.value)} />
       </div>
       <div className="mt-2 grid grid-cols-2 gap-2">
-        <Button onClick={() => setAdding(true)}>
+        <Button onClick={() => { setSpentName(""); setSpent(true); }}>Comprei agora</Button>
+        <Button variant="secondary" onClick={() => setScan(true)}>
+          Escanear nota
+        </Button>
+        <Button variant="secondary" onClick={() => setAdding(true)}>
           <Plus className="size-4" />
           Adicionar
         </Button>
@@ -187,6 +195,15 @@ function Lista() {
       ) : null}
 
       <AddDialog open={adding} onOpenChange={setAdding} />
+      <PurchaseDialog open={spent} initialName={spentName} onOpenChange={setSpent} />
+      <ReceiptDialog
+        open={scan}
+        onOpenChange={setScan}
+        onProduct={(name) => {
+          setSpentName(name);
+          setSpent(true);
+        }}
+      />
       <BuyDialog line={buying} onOpenChange={(open) => !open && setBuying(null)} />
       <PlanDialog line={editing} onOpenChange={(open) => !open && setEditing(null)} />
     </Reveal>

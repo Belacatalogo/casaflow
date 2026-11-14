@@ -1,6 +1,7 @@
 import { toast } from "sonner";
 import { create } from "zustand";
-import { currentMonthKey, monthTitle, shiftMonth } from "@/lib/casa/format";
+import { categoryForGuess, guessProduct, sameProductName, tidyProductName } from "@/lib/casa/classify";
+import { currentMonthKey, monthTitle, round2, shiftMonth } from "@/lib/casa/format";
 import { planLine } from "@/lib/casa/logic";
 import { emptyHome, isUntouchedDemo } from "@/lib/casa/seed";
 import { applyTheme, commitSnapshot, loadSnapshot, readThemePreference } from "@/lib/casa/storage";
@@ -51,6 +52,7 @@ type CasaState = Snapshot & {
   ) => number;
   clearData: () => Promise<void>;
   importSnapshot: (snapshot: Snapshot) => void;
+  recordPurchases: (items: { name: string; qty: number; unit?: string; total: number; store?: string }[]) => number;
 };
 
 function snapshotOf(state: Pick<CasaState, "settings" | "categories" | "products" | "lines">): Snapshot {
@@ -319,6 +321,76 @@ export const useCasa = create<CasaState>((set, get) => ({
     persist(get);
     toast.success(`Lista de ${monthTitle(month)} pronta.`);
     return additions.length;
+  },
+
+  recordPurchases: (items) => {
+    const month = get().viewMonth;
+    if (!month) return 0;
+    const categories = get().categories;
+    const now = new Date().toISOString();
+    const products = [...get().products];
+    const lines = [...get().lines];
+    let count = 0;
+    for (const item of items) {
+      const rawName = item.name.trim().replace(/\s+/g, " ");
+      const total = round2(item.total);
+      const qty = item.qty > 0 ? item.qty : 1;
+      if (rawName.length < 2 || total <= 0) continue;
+      const guess = guessProduct(rawName);
+      const category = categoryForGuess(categories, guess) ?? categories[0];
+      const unit = (item.unit || guess?.unit || "un").trim() || "un";
+      const unitPrice = round2(total / qty);
+      let product = products.find((entry) => sameProductName(entry.name, rawName));
+      if (!product) {
+        product = {
+          id: crypto.randomUUID(),
+          name: tidyProductName(rawName),
+          categoryId: category?.id ?? "",
+          unit,
+          defaultQty: qty,
+          estimatedUnitPrice: unitPrice,
+          coverageDays: guess?.coverageDays ?? 30,
+          recurring: guess?.recurring ?? false,
+          createdAt: now,
+        };
+        products.push(product);
+      } else {
+        const index = products.findIndex((entry) => entry.id === product?.id);
+        products[index] = { ...product, estimatedUnitPrice: unitPrice };
+        product = products[index];
+      }
+      const pendingIndex = lines.findIndex((line) => line.productId === product?.id && line.monthKey === month && line.status === "pending");
+      const store = item.store?.trim() ?? "";
+      if (pendingIndex >= 0) {
+        const line = lines[pendingIndex];
+        lines[pendingIndex] = { ...line, status: "bought", qtyBought: qty, actualTotal: total, store: store || line.store, boughtAt: now };
+      } else {
+        lines.push({
+          id: crypto.randomUUID(),
+          monthKey: month,
+          productId: product.id,
+          categoryId: product.categoryId,
+          name: product.name,
+          unit: product.unit,
+          qtyPlanned: qty,
+          estimatedUnitPrice: unitPrice,
+          qtyBought: qty,
+          actualTotal: total,
+          status: "bought",
+          boughtAt: now,
+          store,
+        });
+      }
+      count += 1;
+    }
+    if (count === 0) {
+      toast("Nada para lançar.");
+      return 0;
+    }
+    set({ products, lines });
+    persist(get);
+    toast.success(count === 1 ? "Compra lançada." : `${count} compras lançadas.`);
+    return count;
   },
 
   clearData: async () => {

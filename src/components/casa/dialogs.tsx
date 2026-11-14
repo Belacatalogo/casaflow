@@ -1,4 +1,5 @@
 import { toast } from "sonner";
+import { categoryForGuess, guessProduct } from "@/lib/casa/classify";
 import { useEffect, useMemo, useState } from "react";
 import { SUGGESTED_STORES } from "@/lib/casa/seed";
 import { decimalToInput, formatMoney, formatQty, parseDecimal } from "@/lib/casa/format";
@@ -77,12 +78,31 @@ export function ProductDialog({
   const addProductToMonth = useCasa((state) => state.addProductToMonth);
   const [draft, setDraft] = useState<ProductDraft>(() => emptyDraft(categories[0]?.id ?? ""));
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [touched, setTouched] = useState({ category: false, unit: false, coverage: false, recurring: false });
+  const guess = guessProduct(draft.name);
+  const guessedCategory = categoryForGuess(categories, guess);
 
   useEffect(() => {
     if (!open) return;
     setErrors({});
+    setTouched({ category: Boolean(product), unit: Boolean(product), coverage: Boolean(product), recurring: Boolean(product) });
     setDraft(product ? fromProduct(product) : emptyDraft(categories[0]?.id ?? ""));
   }, [open, product, categories]);
+
+  function applyName(name: string) {
+    setDraft((current) => {
+      const nextGuess = guessProduct(name);
+      const category = categoryForGuess(categories, nextGuess);
+      return {
+        ...current,
+        name,
+        categoryId: touched.category ? current.categoryId : (category?.id ?? current.categoryId),
+        unit: touched.unit ? current.unit : (nextGuess?.unit ?? current.unit),
+        coverageDays: touched.coverage ? current.coverageDays : nextGuess ? String(nextGuess.coverageDays) : current.coverageDays,
+        recurring: touched.recurring ? current.recurring : (nextGuess?.recurring ?? false),
+      };
+    });
+  }
 
   function save() {
     const defaultQty = parseDecimal(draft.defaultQty);
@@ -133,10 +153,24 @@ export function ProductDialog({
         }}
       >
         <Field label="Nome" error={errors.name}>
-          <input className={fieldClass} value={draft.name} onChange={(event) => setDraft({ ...draft, name: event.target.value })} />
+          <input className={fieldClass} value={draft.name} onChange={(event) => applyName(event.target.value)} />
         </Field>
+        {draft.name.trim().length >= 2 ? (
+          <p className="-mt-2 text-sm text-muted">
+            {categories.find((category) => category.id === draft.categoryId)?.name ?? "Sem categoria"} · {draft.unit}
+            {draft.recurring ? " · entra todo mês" : " · só desta vez"}
+            {guessedCategory && !touched.category ? ". Pode trocar abaixo." : ""}
+          </p>
+        ) : null}
         <Field label="Categoria" error={errors.categoryId}>
-          <select className={fieldClass} value={draft.categoryId} onChange={(event) => setDraft({ ...draft, categoryId: event.target.value })}>
+          <select
+            className={fieldClass}
+            value={draft.categoryId}
+            onChange={(event) => {
+              setTouched((current) => ({ ...current, category: true }));
+              setDraft({ ...draft, categoryId: event.target.value });
+            }}
+          >
             {categories.map((category) => (
               <option key={category.id} value={category.id}>
                 {category.name}
@@ -146,7 +180,14 @@ export function ProductDialog({
         </Field>
         <div className="grid grid-cols-2 gap-3">
           <Field label="Unidade" error={errors.unit} hint="kg, L, un, pct">
-            <input className={fieldClass} value={draft.unit} onChange={(event) => setDraft({ ...draft, unit: event.target.value })} />
+            <input
+              className={fieldClass}
+              value={draft.unit}
+              onChange={(event) => {
+                setTouched((current) => ({ ...current, unit: true }));
+                setDraft({ ...draft, unit: event.target.value });
+              }}
+            />
           </Field>
           <Field label="Quantidade habitual" error={errors.defaultQty}>
             <input inputMode="decimal" className={fieldClass} value={draft.defaultQty} onChange={(event) => setDraft({ ...draft, defaultQty: event.target.value })} />
@@ -157,12 +198,27 @@ export function ProductDialog({
             <input inputMode="decimal" className={fieldClass} value={draft.estimatedUnitPrice} onChange={(event) => setDraft({ ...draft, estimatedUnitPrice: event.target.value })} placeholder="0,00" />
           </Field>
           <Field label="Dura quantos dias" error={errors.coverageDays} hint="Uma unidade">
-            <input inputMode="numeric" className={fieldClass} value={draft.coverageDays} onChange={(event) => setDraft({ ...draft, coverageDays: event.target.value })} />
+            <input
+              inputMode="numeric"
+              className={fieldClass}
+              value={draft.coverageDays}
+              onChange={(event) => {
+                setTouched((current) => ({ ...current, coverage: true }));
+                setDraft({ ...draft, coverageDays: event.target.value });
+              }}
+            />
           </Field>
         </div>
         <div className="flex items-center justify-between gap-3 rounded-2xl bg-sunken px-3 py-3">
           <span className="text-sm text-ink">Repetir todo mês</span>
-          <Toggle on={draft.recurring} label="Repetir todo mês" onClick={() => setDraft({ ...draft, recurring: !draft.recurring })} />
+          <Toggle
+            on={draft.recurring}
+            label="Repetir todo mês"
+            onClick={() => {
+              setTouched((current) => ({ ...current, recurring: true }));
+              setDraft({ ...draft, recurring: !draft.recurring });
+            }}
+          />
         </div>
         {!product ? (
           <div className="flex items-center justify-between gap-3 rounded-2xl bg-sunken px-3 py-3">
@@ -380,6 +436,74 @@ export function PlanDialog({ line, onOpenChange }: { line: ShopLine | null; onOp
           </Button>
         </form>
       ) : null}
+    </Modal>
+  );
+}
+
+export function PurchaseDialog({
+  open,
+  initialName = "",
+  onOpenChange,
+}: {
+  open: boolean;
+  initialName?: string;
+  onOpenChange: (open: boolean) => void;
+}) {
+  const categories = useCasa((state) => state.categories);
+  const recordPurchases = useCasa((state) => state.recordPurchases);
+  const [name, setName] = useState(initialName);
+  const [total, setTotal] = useState("");
+  const [error, setError] = useState("");
+  const guess = guessProduct(name);
+  const category = categoryForGuess(categories, guess);
+
+  useEffect(() => {
+    if (!open) return;
+    setName(initialName);
+    setTotal("");
+    setError("");
+  }, [open, initialName]);
+
+  function save() {
+    const value = parseDecimal(total);
+    if (name.trim().length < 2) {
+      setError("Diga o que você comprou.");
+      return;
+    }
+    if (value == null || value <= 0) {
+      setError("Informe o valor pago.");
+      return;
+    }
+    recordPurchases([{ name, qty: 1, total: value, unit: guess?.unit }]);
+    onOpenChange(false);
+  }
+
+  return (
+    <Modal open={open} onOpenChange={onOpenChange} title="Comprei agora" description="O nome escolhe a categoria. Você informa só o valor.">
+      <form
+        className="flex flex-col gap-4"
+        onSubmit={(event) => {
+          event.preventDefault();
+          save();
+        }}
+      >
+        <Field label="O que comprou">
+          <input className={fieldClass} value={name} onChange={(event) => setName(event.target.value)} placeholder="Óleo, leite, arroz" />
+        </Field>
+        {name.trim().length >= 2 ? (
+          <p className="-mt-2 text-sm text-muted">
+            {category ? category.name : "Não reconheci. Vai para a primeira categoria"} · {guess?.unit ?? "un"}
+            {guess?.recurring ? " · entra todo mês" : " · só desta vez"}
+          </p>
+        ) : null}
+        <Field label="Valor pago">
+          <input inputMode="decimal" className={fieldClass} value={total} onChange={(event) => setTotal(event.target.value)} placeholder="0,00" />
+        </Field>
+        {error ? <p className="text-sm text-terra-deep">{error}</p> : null}
+        <Button type="submit" size="lg" className="w-full">
+          Lançar
+        </Button>
+      </form>
     </Modal>
   );
 }
