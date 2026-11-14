@@ -123,7 +123,7 @@ export function ReceiptDialog({
         </div>
       ) : null}
 
-      {phase === "loading" ? <p className="py-8 text-center text-muted">Lendo a nota…</p> : null}
+      {phase === "loading" ? <p className="py-8 text-center text-muted" role="status">Lendo a nota…</p> : null}
 
       {phase === "ask" ? (
         <div className="flex flex-col gap-3">
@@ -134,7 +134,7 @@ export function ReceiptDialog({
             <span className="mb-1.5 block text-sm font-medium text-ink">Ou cole o link, o código ou o texto da nota</span>
             <textarea className={`${fieldClass} h-28 py-2`} value={paste} onChange={(event) => setPaste(event.target.value)} />
           </label>
-          {message ? <p className="text-sm text-pretty text-terra-deep">{message}</p> : null}
+          {message ? <p className="text-sm text-pretty text-terra-deep" role="alert">{message}</p> : null}
           <Button variant="secondary" disabled={paste.trim().length < 6} onClick={() => void read(paste)}>
             Ler o que colei
           </Button>
@@ -143,9 +143,9 @@ export function ReceiptDialog({
 
       {phase === "review" ? (
         <div className="flex flex-col gap-3">
-          <p className="text-sm text-muted">
-            {items.length} {items.length === 1 ? "item" : "itens"}
-            {store ? ` · ${store}` : ""}. Confira e lance.
+          <p className="font-medium text-ink" role="status">
+            Encontrei {items.length} {items.length === 1 ? "item" : "itens"}
+            {store ? ` em ${store}` : ""}. Confira antes de lançar.
           </p>
           <ul className="flex max-h-80 flex-col divide-y divide-line overflow-y-auto">
             {items.map((item, index) => {

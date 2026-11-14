@@ -35,8 +35,7 @@ function KitchenPage() {
               <div className="flex items-baseline justify-between gap-3">
                 <h2 className="font-display text-2xl text-ink">{product.name}</h2>
                 <p className="font-display text-3xl tabular-nums text-ink">
-                  {formatQty(product.onHand ?? 0)}
-                  <span className="ml-1 text-base text-muted">{product.unit}</span>
+                  {formatQty(product.onHand ?? 0)} {product.unit}
                 </p>
               </div>
               <div className="mt-4 grid grid-cols-2 gap-2">

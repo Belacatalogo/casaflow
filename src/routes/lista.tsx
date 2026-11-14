@@ -6,7 +6,7 @@ import { CategoryGlyph } from "@/components/casa/icons";
 import { AddDialog, BuyDialog, PlanDialog, PurchaseDialog } from "@/components/casa/dialogs";
 import { ReceiptDialog } from "@/components/casa/receipt-dialog";
 import { Button, Card, EmptyState, PageSkeleton, fieldClass } from "@/components/ui/controls";
-import { formatMoney, formatQty } from "@/lib/casa/format";
+import { formatMoney, formatQty, monthTitle } from "@/lib/casa/format";
 import { lineActual, summarizeMonth } from "@/lib/casa/logic";
 import { adviseLine, linesForMode, missingLabel, pendingSummary } from "@/lib/casa/modes";
 import { coverageText } from "@/lib/casa/stock";
@@ -91,6 +91,11 @@ function Lista() {
         <div className="mt-3">
           <ModeSwitch />
         </div>
+        {mode !== "completa" ? (
+          <p className="mt-3 inline-flex rounded-full bg-gold-soft px-3 py-1 text-sm font-medium text-gold-deep">
+            {mode === "economia" ? "Economia: só o essencial, na quantidade habitual" : "Acabando: só o que está no fim"}
+          </p>
+        ) : null}
       </header>
 
       <div className="relative mt-4">
@@ -114,13 +119,13 @@ function Lista() {
       {shown.length === 0 && waiting.length === 0 ? (
         <div className="mt-5">
           <EmptyState
-            title={query ? "Nada com esse nome" : "Lista vazia"}
+            title={query ? "Nada com esse nome" : "Nada neste mês"}
             detail={
               query
-                ? "Tente outro nome ou cadastre o produto."
+                ? "Tente outro nome ou cadastre o produto no catálogo."
                 : hasRecurring
-                  ? "Monte a lista com o que se repete todo mês, ou adicione um item."
-                  : "Cadastre o primeiro produto. Depois a lista do mês se monta sozinha."
+                  ? `A lista de ${monthTitle(viewMonth)} ainda não foi montada. Use o que se repete ou adicione um item.`
+                  : "Cadastre o primeiro produto no catálogo. A lista do mês nasce a partir dele."
             }
             action={
               query ? null : hasRecurring ? (

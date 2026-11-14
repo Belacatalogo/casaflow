@@ -1,12 +1,4 @@
-import {
-  currentMonthKey,
-  daysInMonth,
-  formatMoney,
-  monthLabel,
-  round2,
-  roundQty,
-  shiftMonth,
-} from "@/lib/casa/format";
+import { currentMonthKey, daysInMonth, formatMoney, monthCount, monthLabel, round2, roundQty, shiftMonth } from "@/lib/casa/format";
 import type { Category, Product, ShopLine } from "@/lib/casa/types";
 
 export type MonthTotals = {
@@ -184,7 +176,7 @@ export function suggestQty(
   const quantities = [...byMonth.values()];
   if (quantities.length >= 2) {
     const avg = quantities.reduce((sum, qty) => sum + qty, 0) / quantities.length;
-    return { qty: roundQty(avg), reason: `média de ${quantities.length} meses` };
+    return { qty: roundQty(avg), reason: `média de ${monthCount(quantities.length)}` };
   }
   const fromCoverage = product.coverageDays > 0 ? 30 / product.coverageDays : product.defaultQty;
   return { qty: roundQty(fromCoverage), reason: "para durar cerca de 30 dias" };

@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { UserButton } from "@/lib/auth/gates";
 import { toast } from "sonner";
 import { useEffect, useState } from "react";
+import QRCode from "qrcode";
 import { PageIntro, Reveal } from "@/components/casa/chrome";
 import { ICON_OPTIONS } from "@/components/casa/icons";
 import { SWATCHES } from "@/components/casa/dialogs";
@@ -51,6 +52,7 @@ function SettingsScreen() {
   const [icon, setIcon] = useState("basket");
   const [swatch, setSwatch] = useState<Swatch>("terra");
   const [confirmReset, setConfirmReset] = useState(false);
+  const [dropCategory, setDropCategory] = useState<string | null>(null);
 
   useEffect(() => {
     setName(settings.householdName);
@@ -79,11 +81,27 @@ function SettingsScreen() {
         <div className="flex items-center justify-between gap-3">
           <div>
             <h2 className="font-display text-2xl text-ink">Conta</h2>
-            <p className="mt-1 text-sm text-muted">Código da cozinha: {homeCode || "—"}</p>
+            <p className="mt-1 font-display text-3xl tracking-[0.18em] text-ink">{homeCode || "—"}</p>
           </div>
           <UserButton />
         </div>
         <p className="mt-3 text-pretty text-sm text-muted">Quem entra com esse código só vê o que ainda tem em casa.</p>
+        {homeCode ? (
+          <div className="mt-4 flex flex-wrap items-center gap-4">
+            <Button
+              variant="secondary"
+              onClick={() => {
+                void navigator.clipboard.writeText(homeCode).then(
+                  () => toast.success("Código copiado."),
+                  () => toast("Não consegui copiar. Anote o código."),
+                );
+              }}
+            >
+              Copiar código
+            </Button>
+            <KitchenQr code={homeCode} />
+          </div>
+        ) : null}
       </Card>
 
       <Card className="mt-5">
@@ -185,8 +203,8 @@ function SettingsScreen() {
                     />
                   ))}
                 </div>
-                <Button variant="ghost" onClick={() => removeCategory(category.id)}>
-                  Excluir
+                <Button variant="ghost" aria-label={`Excluir categoria ${category.name}`} onClick={() => setDropCategory(category.id)}>
+                  Excluir {category.name}
                 </Button>
               </li>
             ))}
@@ -258,7 +276,7 @@ function SettingsScreen() {
         </div>
       </Card>
 
-      <Modal open={confirmReset} onOpenChange={setConfirmReset} title="Apagar produtos e compras?" description="A lista, os produtos e o histórico deste celular somem. Categorias, limite e tema continuam.">
+      <Modal open={confirmReset} onOpenChange={setConfirmReset} title="Apagar produtos e compras?" description="A lista, os produtos e o histórico somem. Categorias, limite e tema continuam.">
         <div className="flex flex-col gap-2">
           <Button
             onClick={() => {
@@ -266,9 +284,32 @@ function SettingsScreen() {
               setConfirmReset(false);
             }}
           >
-            Apagar
+            Apagar tudo
           </Button>
           <Button variant="secondary" onClick={() => setConfirmReset(false)}>
+            Cancelar
+          </Button>
+        </div>
+      </Modal>
+      <Modal
+        open={Boolean(dropCategory)}
+        onOpenChange={(open) => !open && setDropCategory(null)}
+        title="Excluir esta categoria?"
+        description={categories.find((category) => category.id === dropCategory)?.name ?? "Os produtos dela ficam sem categoria."}
+      >
+        <div className="grid grid-cols-2 gap-2">
+          <Button
+            onClick={() => {
+              if (!dropCategory) return;
+              const current = categories.find((category) => category.id === dropCategory)?.name ?? "Categoria";
+              removeCategory(dropCategory);
+              toast.success(`${current} excluída.`);
+              setDropCategory(null);
+            }}
+          >
+            Excluir
+          </Button>
+          <Button variant="secondary" onClick={() => setDropCategory(null)}>
             Cancelar
           </Button>
         </div>
@@ -293,4 +334,13 @@ function swatchClass(swatch: Swatch) {
   if (swatch === "sand") return "bg-gold-deep";
   if (swatch === "ink") return "bg-ink";
   return "bg-muted";
+}
+
+function KitchenQr({ code }: { code: string }) {
+  const [src, setSrc] = useState("");
+  useEffect(() => {
+    void QRCode.toDataURL(code, { margin: 1, width: 160, color: { dark: "#1c1916", light: "#fffaf4" } }).then(setSrc);
+  }, [code]);
+  if (!src) return null;
+  return <img src={src} alt={`QR do código ${code}`} className="size-28 rounded-2xl border border-line bg-surface" />;
 }

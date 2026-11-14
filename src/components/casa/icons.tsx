@@ -24,8 +24,8 @@ const ICONS: Record<string, LucideIcon> = {
 export const ICON_OPTIONS = [
   { id: "apple", label: "Hortifruti" },
   { id: "wheat", label: "Mercearia" },
-  { id: "beef", label: "Proteína" },
-  { id: "milk", label: "Laticínio" },
+  { id: "beef", label: "Proteínas" },
+  { id: "milk", label: "Laticínios" },
   { id: "spray", label: "Limpeza" },
   { id: "droplets", label: "Higiene" },
   { id: "croissant", label: "Padaria" },

@@ -1,12 +1,13 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
+import { toast } from "sonner";
 import { normalizeName } from "@/lib/casa/classify";
 import { PageIntro, Reveal } from "@/components/casa/chrome";
-import { Button, Card, EmptyState, PageSkeleton, fieldClass } from "@/components/ui/controls";
+import { Button, Card, EmptyState, Modal, PageSkeleton, fieldClass } from "@/components/ui/controls";
 import { formatDay, formatMoney, formatQty, monthTitle } from "@/lib/casa/format";
 import { lineActual } from "@/lib/casa/logic";
 import { useCasa } from "@/lib/casa/store";
-import type { LineStatus } from "@/lib/casa/types";
+import type { LineStatus, ShopLine } from "@/lib/casa/types";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/historico")({
@@ -27,6 +28,7 @@ function History() {
   const [month, setMonth] = useState("all");
   const [categoryId, setCategoryId] = useState("all");
   const setStatus = useCasa((state) => state.setStatus);
+  const [undo, setUndo] = useState<ShopLine | null>(null);
   const [status, setStatusFilter] = useState<"all" | LineStatus>("bought");
   const months = useMemo(() => [...new Set(lines.map((line) => line.monthKey))].sort().reverse(), [lines]);
   const filtered = useMemo(
@@ -104,7 +106,7 @@ function History() {
                       {line.status === "bought" ? formatMoney(lineActual(line)) : formatMoney(line.qtyPlanned * line.estimatedUnitPrice)}
                     </span>
                     {line.status === "bought" ? (
-                      <Button variant="ghost" onClick={() => setStatus(line.id, "pending")}>
+                      <Button variant="ghost" aria-label={`Desfazer compra de ${line.name}`} onClick={() => setUndo(line)}>
                         Desfazer
                       </Button>
                     ) : null}
@@ -115,6 +117,28 @@ function History() {
           ))}
         </div>
       )}
+      <Modal
+        open={Boolean(undo)}
+        onOpenChange={(open) => !open && setUndo(null)}
+        title={undo ? `Desfazer ${undo.name}?` : "Desfazer"}
+        description="A compra sai do histórico e volta para a lista do mês."
+      >
+        <div className="grid grid-cols-2 gap-2">
+          <Button
+            onClick={() => {
+              if (!undo) return;
+              setStatus(undo.id, "pending");
+              toast.success(`${undo.name} voltou para a lista.`);
+              setUndo(null);
+            }}
+          >
+            Desfazer
+          </Button>
+          <Button variant="secondary" onClick={() => setUndo(null)}>
+            Cancelar
+          </Button>
+        </div>
+      </Modal>
     </Reveal>
   );
 }

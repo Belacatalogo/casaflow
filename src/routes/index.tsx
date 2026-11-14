@@ -59,10 +59,13 @@ function Dashboard() {
         <h1 className="mt-1 font-display text-[2rem] leading-none tracking-tight text-ink sm:text-5xl">{settings.householdName}</h1>
         <p className="mt-2 text-sm text-muted">
           {settings.people} {settings.people === 1 ? "pessoa" : "pessoas"} · só neste celular
-          {mode === "economia" ? " · previsão no modo economia" : ""}
-          {mode === "acabando" ? " · previsão só do que está acabando" : ""}
           {` · ${missingLabel(pendingSummary(lines, products, viewMonth, mode, now)).toLowerCase()}`}
         </p>
+        {mode !== "completa" ? (
+          <p className="mt-3 inline-flex rounded-full bg-gold-soft px-3 py-1 text-sm font-medium text-gold-deep">
+            {mode === "economia" ? "Modo economia ligado" : "Modo acabando ligado"}
+          </p>
+        ) : null}
         <div className="mt-4 rounded-full bg-sunken">
           <MonthSwitcher className="w-full" titleClassName="min-w-0 flex-1 truncate px-1 text-base sm:text-lg" />
         </div>
@@ -155,7 +158,7 @@ function Dashboard() {
         <Card className="mt-3 rounded-[2rem]">
           <div className="flex items-baseline justify-between gap-3">
             <h2 className="font-display text-2xl text-ink">Gasto do mês</h2>
-            <p className="text-sm text-muted">Dourado: limite</p>
+            <p className="text-sm text-gold-deep">Linha dourada: limite do mês</p>
           </div>
           <div className="mt-2">
             <PaceChart points={points} />

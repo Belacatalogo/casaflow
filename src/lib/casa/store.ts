@@ -345,7 +345,7 @@ export const useCasa = create<CasaState>((set, get) => ({
         : get().products,
     });
     persist(get);
-    toast.success("Compra registrada.");
+    toast.success(`${line?.name ?? "Compra"} registrada.`);
   },
 
   setStatus: (id, status) => {

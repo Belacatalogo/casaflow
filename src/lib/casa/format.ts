@@ -103,6 +103,10 @@ export function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value));
 }
 
+export function monthCount(count: number): string {
+  return count === 1 ? "1 mês" : `${count} meses`;
+}
+
 export function hashUnit(seed: string): number {
   let hash = 2166136261;
   for (let i = 0; i < seed.length; i += 1) {

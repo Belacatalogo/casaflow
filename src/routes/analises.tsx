@@ -1,9 +1,10 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
+import { toast } from "sonner";
 import { MonthChart } from "@/components/casa/charts";
 import { MonthSwitcher, Reveal } from "@/components/casa/chrome";
 import { Button, Card, PageSkeleton, fieldClass } from "@/components/ui/controls";
-import { decimalToInput, formatMoney, formatQty, monthTitle, parseDecimal, shiftMonth } from "@/lib/casa/format";
+import { decimalToInput, formatMoney, formatQty, monthCount, monthTitle, parseDecimal, shiftMonth } from "@/lib/casa/format";
 import { consumptionRows, monthBars, summarizeMonth } from "@/lib/casa/logic";
 import { useCasa } from "@/lib/casa/store";
 
@@ -118,7 +119,7 @@ function Analytics() {
                 </div>
                 <p className="text-sm text-muted">
                   média {formatQty(row.avgQty)} {row.unit}
-                  {row.months > 0 ? ` · ${row.months} meses` : ""}
+                  {row.months > 0 ? ` · ${monthCount(row.months)}` : ""}
                 </p>
                 <p className="tabular-nums text-ink sm:text-right">{row.avgSpend > 0 ? formatMoney(row.avgSpend) : "ainda sem compra"}</p>
               </li>
@@ -164,7 +165,10 @@ function Analytics() {
                   }
                   aria-label={`Incluir ${product.name}`}
                 />
-                <span className="text-ink">{product.name}</span>
+                <span>
+                  <span className="block text-ink">{product.name}</span>
+                  <span className="text-sm text-muted">Quantidade em {product.unit}</span>
+                </span>
                 <input
                   className={fieldClass}
                   inputMode="decimal"
@@ -208,7 +212,10 @@ function Analytics() {
                 }))
                 .filter((draft) => draft.qty > 0);
               const count = createPlanned(next, payload);
-              if (count > 0) void navigate({ to: "/lista" });
+              if (count > 0) {
+                toast.success(`Lista de ${monthTitle(next).split(" de ")[0]} criada com ${count} itens.`);
+                void navigate({ to: "/lista" });
+              }
             }}
           >
             Criar lista de {monthTitle(next).split(" de ")[0]}

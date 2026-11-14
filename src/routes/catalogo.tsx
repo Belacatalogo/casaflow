@@ -40,6 +40,7 @@ function Catalog() {
   const [creating, setCreating] = useState(false);
   const [leftover, setLeftover] = useState<Product | null>(null);
   const [leftQty, setLeftQty] = useState("");
+  const [drop, setDrop] = useState<Product | null>(null);
   const [openHistory, setOpenHistory] = useState<string | null>(null);
 
   const visible = useMemo(
@@ -112,9 +113,10 @@ function Catalog() {
                   {product.recurring ? " · todo mês" : ""}
                   {coverageText(product) ? ` · ${coverageText(product).toLowerCase()}` : ""}
                 </p>
-                <div className="mt-4 grid grid-cols-2 gap-2">
-                  <Button onClick={() => markFinished(product.id)}>Acabou</Button>
+                <div className="mt-4 grid grid-cols-2 gap-3">
+                  <Button size="lg" onClick={() => markFinished(product.id)}>Acabou</Button>
                   <Button
+                    size="lg"
                     variant="secondary"
                     onClick={() => {
                       setLeftover(product);
@@ -123,24 +125,26 @@ function Catalog() {
                   >
                     Sobrou
                   </Button>
-                </div>
-                <div className="mt-2 flex flex-wrap gap-2">
                   <Button
+                    size="lg"
                     disabled={pending}
                     onClick={() => {
                       if (pending) return;
                       const added = addProductToMonth(product.id);
-                      if (added) toast.success(`${product.name} entrou na lista.`);
+                      if (added) toast.success(`${product.name} entrou na lista deste mês.`);
                     }}
                     variant={pending ? "secondary" : "primary"}
                   >
                     {pending ? "Na lista" : "Incluir neste mês"}
                   </Button>
-                  <Button variant="ghost" onClick={() => setEditing(product)}>
+                  <Button size="lg" variant="secondary" onClick={() => setEditing(product)}>
                     Editar
                   </Button>
-                  <Button variant="ghost" onClick={() => setOpenHistory(openHistory === product.id ? null : product.id)}>
+                  <Button size="lg" variant="ghost" onClick={() => setOpenHistory(openHistory === product.id ? null : product.id)}>
                     Preços
+                  </Button>
+                  <Button size="lg" variant="ghost" aria-label={`Tirar ${product.name} do catálogo`} onClick={() => setDrop(product)}>
+                    Tirar do catálogo
                   </Button>
                 </div>
                 {openHistory === product.id ? (
@@ -159,15 +163,6 @@ function Catalog() {
                     </ul>
                   )
                 ) : null}
-                <button
-                  type="button"
-                  className="mt-4 text-sm text-terra-deep"
-                  onClick={() => {
-                    if (window.confirm("Tirar este produto? As compras já feitas continuam no histórico.")) removeProduct(product.id);
-                  }}
-                >
-                  Tirar do catálogo
-                </button>
               </Card>
             );
           })}
@@ -179,6 +174,28 @@ function Catalog() {
           setEditing(null);
         }
       }} />
+      <Modal
+        open={Boolean(drop)}
+        onOpenChange={(open) => !open && setDrop(null)}
+        title={drop ? `Tirar ${drop.name} do catálogo?` : "Tirar do catálogo"}
+        description="As compras já feitas continuam no histórico."
+      >
+        <div className="grid grid-cols-2 gap-2">
+          <Button
+            onClick={() => {
+              if (!drop) return;
+              removeProduct(drop.id);
+              toast.success(`${drop.name} saiu do catálogo.`);
+              setDrop(null);
+            }}
+          >
+            Tirar
+          </Button>
+          <Button variant="secondary" onClick={() => setDrop(null)}>
+            Cancelar
+          </Button>
+        </div>
+      </Modal>
       <Modal open={Boolean(leftover)} onOpenChange={(open) => !open && setLeftover(null)} title={leftover ? `Quanto ainda tem de ${leftover.name}?` : "Sobrou"} description="A data é de agora. Não precisa preencher.">
         <form
           className="flex flex-col gap-3"
