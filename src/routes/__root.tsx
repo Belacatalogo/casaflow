@@ -14,7 +14,7 @@ export const Route = createRootRoute({
   head: () => ({
     meta: [
       { charSet: "utf-8" },
-      { name: "viewport", content: "width=device-width, initial-scale=1, viewport-fit=cover" },
+      { name: "viewport", content: "width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content" },
       { title: APP_NAME },
       { name: "description", content: "Lista de compras da casa, com preços pagos, histórico e previsão do mês." },
       { name: "theme-color", content: "#faf8f5", media: "(prefers-color-scheme: light)" },

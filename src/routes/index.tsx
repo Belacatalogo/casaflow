@@ -114,16 +114,18 @@ function Dashboard() {
             : "Cartão folgado";
     if (!card.ready) {
       return (
-        <section className="mt-5 overflow-hidden rounded-[2rem] bg-hero px-5 py-6 text-on-hero sm:px-7 sm:py-8">
-          <div className="h-1 w-10 rounded-full bg-gold" />
-          <h2 className="mt-5 font-display text-3xl tracking-tight">Quanto tem no cartão agora?</h2>
-          <p className="mt-2 max-w-md text-pretty text-on-hero-muted">
-            Coloque o saldo de hoje. O que você comprar a partir de agora sai desse valor. No último dia útil do mês entra o vale do mês seguinte.
-          </p>
-          <div className="mt-5 flex flex-col gap-2 sm:flex-row">
+        <section className="mt-5 rounded-[2rem] bg-hero px-5 py-5 text-on-hero">
+          <h2 className="font-display text-2xl tracking-tight">Quanto tem no cartão?</h2>
+          <p className="mt-1 text-sm text-on-hero-muted">As compras daqui pra frente saem desse valor.</p>
+          <div className="mt-4 flex flex-col gap-2">
             <input
               className="h-12 rounded-full bg-white/10 px-4 text-lg text-on-hero outline-none placeholder:text-on-hero-muted"
               inputMode="decimal"
+              enterKeyHint="done"
+              autoComplete="off"
+              autoCorrect="off"
+              spellCheck={false}
+              name="saldo-cartao"
               placeholder="0,00"
               value={typed}
               onChange={(event) => setTyped(event.target.value)}
