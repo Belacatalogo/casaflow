@@ -1,7 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
+import { normalizeName } from "@/lib/casa/classify";
 import { PageIntro, Reveal } from "@/components/casa/chrome";
-import { Card, EmptyState, PageSkeleton, fieldClass } from "@/components/ui/controls";
+import { Button, Card, EmptyState, PageSkeleton, fieldClass } from "@/components/ui/controls";
 import { formatDay, formatMoney, formatQty, monthTitle } from "@/lib/casa/format";
 import { lineActual } from "@/lib/casa/logic";
 import { useCasa } from "@/lib/casa/store";
@@ -25,7 +26,8 @@ function History() {
   const [query, setQuery] = useState("");
   const [month, setMonth] = useState("all");
   const [categoryId, setCategoryId] = useState("all");
-  const [status, setStatus] = useState<"all" | LineStatus>("all");
+  const setStatus = useCasa((state) => state.setStatus);
+  const [status, setStatusFilter] = useState<"all" | LineStatus>("bought");
   const months = useMemo(() => [...new Set(lines.map((line) => line.monthKey))].sort().reverse(), [lines]);
   const filtered = useMemo(
     () =>
@@ -34,8 +36,7 @@ function History() {
         .filter((line) => categoryId === "all" || line.categoryId === categoryId)
         .filter((line) => status === "all" || line.status === status)
         .filter((line) => {
-          const hay = `${line.name} ${line.store}`.toLowerCase();
-          return hay.includes(query.trim().toLowerCase());
+          return normalizeName(`${line.name} ${line.store}`).includes(normalizeName(query));
         })
         .sort((a, b) => b.monthKey.localeCompare(a.monthKey) || (b.boughtAt ?? "").localeCompare(a.boughtAt ?? "")),
     [lines, month, categoryId, status, query],
@@ -50,7 +51,7 @@ function History() {
 
   return (
     <Reveal>
-      <PageIntro eyebrow="Histórico" title="Compras feitas" lede="Busque por produto, mês ou loja. O valor pago não muda se você editar o produto." />
+      <PageIntro eyebrow="Histórico" title="O que já paguei" lede="Dá para buscar por produto ou loja. Se lançou errado, desfaça." />
       <div className="mt-5 grid gap-3 sm:grid-cols-2">
         <input className={fieldClass} placeholder="Produto ou loja" value={query} onChange={(event) => setQuery(event.target.value)} />
         <select className={fieldClass} value={month} onChange={(event) => setMonth(event.target.value)}>
@@ -69,7 +70,7 @@ function History() {
             </option>
           ))}
         </select>
-        <select className={fieldClass} value={status} onChange={(event) => setStatus(event.target.value as "all" | LineStatus)}>
+        <select className={fieldClass} value={status} onChange={(event) => setStatusFilter(event.target.value as "all" | LineStatus)}>
           <option value="all">Qualquer status</option>
           <option value="bought">Comprados</option>
           <option value="pending">Pendentes</option>
@@ -102,6 +103,11 @@ function History() {
                     <span className={cn("tabular-nums", line.status === "bought" ? "text-ink" : "text-muted")}>
                       {line.status === "bought" ? formatMoney(lineActual(line)) : formatMoney(line.qtyPlanned * line.estimatedUnitPrice)}
                     </span>
+                    {line.status === "bought" ? (
+                      <Button variant="ghost" onClick={() => setStatus(line.id, "pending")}>
+                        Desfazer
+                      </Button>
+                    ) : null}
                   </li>
                 ))}
               </ul>

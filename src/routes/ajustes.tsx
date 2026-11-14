@@ -98,7 +98,7 @@ function SettingsScreen() {
         <div className="mt-4 flex items-center justify-between gap-3">
           <div>
             <p className="text-sm font-medium text-ink">Pessoas</p>
-            <p className="text-sm text-muted">Muda a quantidade sugerida.</p>
+            <p className="text-sm text-muted">Só uma anotação. Não muda preços nem quantidades.</p>
           </div>
           <div className="flex items-center gap-2">
             <Button variant="secondary" size="icon" aria-label="Menos uma pessoa" onClick={() => updateSettings({ people: settings.people - 1 })}>
@@ -161,7 +161,10 @@ function SettingsScreen() {
           className="mt-4 flex flex-col gap-3 border-t border-line pt-4"
           onSubmit={(event) => {
             event.preventDefault();
-            if (categoryName.trim().length < 2) return;
+            if (categoryName.trim().length < 2) {
+              toast("O nome precisa de pelo menos 2 letras.");
+              return;
+            }
             addCategory({ name: categoryName, icon, swatch });
             setCategoryName("");
           }}

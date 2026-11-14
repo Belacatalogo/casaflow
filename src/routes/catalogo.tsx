@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { Plus } from "lucide-react";
 import { useMemo, useState } from "react";
-import { PageIntro, Reveal } from "@/components/casa/chrome";
+import { Reveal } from "@/components/casa/chrome";
 import { ProductDialog } from "@/components/casa/dialogs";
 import { CategoryGlyph } from "@/components/casa/icons";
 import { Button, Card, EmptyState, PageSkeleton, fieldClass } from "@/components/ui/controls";
@@ -48,18 +48,16 @@ function Catalog() {
 
   return (
     <Reveal>
-      <PageIntro
-        eyebrow="Catálogo"
-        title="Produtos"
-        lede="O que a casa compra de novo. Daqui você manda o item para a lista."
-        extra={
-          <Button onClick={() => setCreating(true)}>
-            <Plus className="size-4" />
-            Novo produto
-          </Button>
-        }
-      />
-      <input className={cn(fieldClass, "mt-5")} placeholder="Buscar no catálogo" value={query} onChange={(event) => setQuery(event.target.value)} />
+      <header>
+        <p className="text-xs tracking-[0.16em] text-muted uppercase">Catálogo</p>
+        <h1 className="mt-1 font-display text-[2rem] leading-none tracking-tight text-ink">Produtos da casa</h1>
+        <p className="mt-2 text-pretty text-sm text-muted">O que se repete. Daqui o item vai para a lista do mês.</p>
+        <Button className="mt-4 w-full sm:w-auto" onClick={() => setCreating(true)}>
+          <Plus className="size-4" />
+          Novo produto
+        </Button>
+      </header>
+      <input className={cn(fieldClass, "mt-5 rounded-full")} placeholder="Buscar produto" value={query} onChange={(event) => setQuery(event.target.value)} />
       <div className="mt-3 flex gap-2 overflow-x-auto pb-1">
         <FilterChip on={categoryId === "all"} onClick={() => setCategoryId("all")}>
           Tudo
@@ -84,8 +82,8 @@ function Catalog() {
             const suggestion = suggestQty(product, lines, people);
             const history = productHistory(lines, product.id);
             const last = history[0];
-            const avg =
-              history.length > 0 ? history.reduce((sum, line) => sum + (line.actualTotal ?? 0), 0) / history.length : 0;
+            const prices = history.flatMap((line) => (line.qtyBought > 0 && line.actualTotal != null ? [line.actualTotal / line.qtyBought] : []));
+            const avg = prices.length ? prices.reduce((sum, price) => sum + price, 0) / prices.length : 0;
             const pending = lines.some(
               (line) => line.productId === product.id && line.monthKey === viewMonth && line.status === "pending",
             );
@@ -100,24 +98,13 @@ function Catalog() {
                     <p className="text-sm text-muted">{category?.name} · {product.unit}</p>
                   </div>
                 </div>
-                <dl className="mt-4 grid grid-cols-3 gap-2 text-sm">
-                  <div>
-                    <dt className="text-muted">Último</dt>
-                    <dd className="mt-1 tabular-nums text-ink">{last?.actualTotal != null && last.qtyBought > 0 ? formatMoney(last.actualTotal / last.qtyBought) : "—"}</dd>
-                  </div>
-                  <div>
-                    <dt className="text-muted">Média</dt>
-                    <dd className="mt-1 tabular-nums text-ink">{history.length ? formatMoney(avg) : "—"}</dd>
-                  </div>
-                  <div>
-                    <dt className="text-muted">Sugestão</dt>
-                    <dd className="mt-1 tabular-nums text-ink">
-                      {formatQty(suggestion.qty)} {product.unit}
-                    </dd>
-                  </div>
-                </dl>
-                <p className="mt-3 text-sm text-pretty text-muted">
-                  {formatQty(suggestion.qty)} {product.unit}, {suggestion.reason}. Uma unidade dura cerca de {product.coverageDays} dias.
+                <p className="mt-3 text-sm text-muted">
+                  Último {last?.actualTotal != null && last.qtyBought > 0 ? formatMoney(last.actualTotal / last.qtyBought) : "—"}
+                  {" · "}
+                  média {prices.length ? formatMoney(avg) : "—"}
+                  {" · "}
+                  sugerido {formatQty(suggestion.qty)} {product.unit}
+                  {product.recurring ? " · todo mês" : ""}
                 </p>
                 <div className="mt-4 flex flex-wrap gap-2">
                   <Button
@@ -161,7 +148,7 @@ function Catalog() {
                     if (window.confirm("Tirar este produto? As compras já feitas continuam no histórico.")) removeProduct(product.id);
                   }}
                 >
-                  Tirar da lista de produtos
+                  Tirar do catálogo
                 </button>
               </Card>
             );

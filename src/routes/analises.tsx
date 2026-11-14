@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { MonthChart } from "@/components/casa/charts";
-import { MonthSwitcher, PageIntro, Reveal } from "@/components/casa/chrome";
+import { MonthSwitcher, Reveal } from "@/components/casa/chrome";
 import { Button, Card, PageSkeleton, fieldClass } from "@/components/ui/controls";
 import { decimalToInput, formatMoney, formatQty, monthTitle, parseDecimal, shiftMonth } from "@/lib/casa/format";
 import { consumptionRows, monthBars, summarizeMonth } from "@/lib/casa/logic";
@@ -50,7 +50,9 @@ function Analytics() {
     const price = parseDecimal(draft.price) ?? 0;
     return sum + qty * price;
   }, 0);
-  const visibleRows = showAll ? rows : rows.slice(0, 8);
+  const hasSpend = lines.some((line) => line.status === "bought" && (line.actualTotal ?? 0) > 0);
+  const heavy = rows.filter((row) => row.avgSpend > 0);
+  const visibleRows = showAll ? heavy : heavy.slice(0, 8);
   const rankedDrafts = [...drafts].sort((a, b) => {
     const spend = (draft: Draft) => (parseDecimal(draft.qty) ?? 0) * (parseDecimal(draft.price) ?? 0);
     return spend(b) - spend(a);
@@ -59,14 +61,17 @@ function Analytics() {
 
   return (
     <Reveal>
-      <PageIntro
-        eyebrow="Análises"
-        title="Resumo"
-        lede="O que a casa mais gasta e uma lista pronta para o mês que vem."
-        extra={<MonthSwitcher />}
-      />
+      <header>
+        <p className="text-xs tracking-[0.16em] text-muted uppercase">Análises</p>
+        <h1 className="mt-1 font-display text-[2rem] leading-none tracking-tight text-ink">Resumo</h1>
+        <div className="mt-4 rounded-full bg-sunken">
+          <MonthSwitcher className="w-full" titleClassName="min-w-0 flex-1 truncate px-1 text-base sm:text-lg" />
+        </div>
+      </header>
 
-      <div className="mt-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
+      {hasSpend ? (
+        <>
+          <div className="mt-5 grid grid-cols-2 gap-3">
         <Card>
           <p className="text-sm text-muted">Média dos meses</p>
           <p className="mt-2 font-display text-2xl tabular-nums">{formatMoney(avg)}</p>
@@ -96,7 +101,7 @@ function Analytics() {
       <Card className="mt-3">
         <div className="flex items-baseline justify-between gap-3">
           <h2 className="font-display text-2xl text-ink">O que mais pesa</h2>
-          {rows.length > 8 ? (
+          {heavy.length > 8 ? (
             <button type="button" className="text-sm text-terra-deep" onClick={() => setShowAll((value) => !value)}>
               {showAll ? "Mostrar menos" : "Ver todos"}
             </button>
@@ -121,6 +126,13 @@ function Analytics() {
           })}
         </ul>
       </Card>
+        </>
+      ) : (
+        <Card className="mt-5">
+          <h2 className="font-display text-2xl text-ink">Ainda sem compras</h2>
+          <p className="mt-2 text-pretty text-muted">O gráfico entra depois que você registrar o que pagou.</p>
+        </Card>
+      )}
 
       <Card className="mt-3">
         <h2 className="font-display text-2xl text-ink">Próximo mês</h2>
@@ -157,6 +169,7 @@ function Analytics() {
                   className={fieldClass}
                   inputMode="decimal"
                   aria-label={`Quantidade de ${product.name}`}
+                  placeholder="Qtd"
                   value={draft.qty}
                   onChange={(event) =>
                     setDrafts((current) => current.map((item) => (item.productId === draft.productId ? { ...item, qty: event.target.value } : item)))
@@ -166,6 +179,7 @@ function Analytics() {
                   className={fieldClass}
                   inputMode="decimal"
                   aria-label={`Preço de ${product.name}`}
+                  placeholder="Preço"
                   value={draft.price}
                   onChange={(event) =>
                     setDrafts((current) => current.map((item) => (item.productId === draft.productId ? { ...item, price: event.target.value } : item)))
