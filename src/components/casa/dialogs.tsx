@@ -60,7 +60,6 @@ type ProductDraft = {
   estimatedUnitPrice: string;
   coverageDays: string;
   recurring: boolean;
-  include: boolean;
 };
 
 function emptyDraft(categoryId: string): ProductDraft {
@@ -72,7 +71,6 @@ function emptyDraft(categoryId: string): ProductDraft {
     estimatedUnitPrice: "",
     coverageDays: "30",
     recurring: true,
-    include: true,
   };
 }
 
@@ -85,17 +83,18 @@ function fromProduct(product: Product): ProductDraft {
     estimatedUnitPrice: decimalToInput(product.estimatedUnitPrice),
     coverageDays: String(product.coverageDays),
     recurring: product.recurring,
-    include: false,
   };
 }
 
 export function ProductDialog({
   open,
   product,
+  onList = false,
   onOpenChange,
 }: {
   open: boolean;
   product?: Product | null;
+  onList?: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
   const categories = useCasa((state) => state.categories);
@@ -156,9 +155,9 @@ export function ProductDialog({
       },
       product?.id,
     );
-    if (!product && draft.include) {
+    if (!product && onList) {
       const added = addProductToMonth(id);
-      toast.success(added ? "Produto criado e incluído na lista." : "Produto criado.");
+      toast.success(added ? `${draft.name.trim()} entrou na lista.` : "Produto criado.");
     } else {
       toast.success(product ? "Produto atualizado." : "Produto criado.");
     }
@@ -243,12 +242,6 @@ export function ProductDialog({
             Ajustar categoria e unidade
           </button>
         )}
-        {!product ? (
-          <div className="flex items-center justify-between gap-3 rounded-2xl bg-sunken px-3 py-3">
-            <span className="text-sm text-ink">Incluir na lista deste mês</span>
-            <Toggle on={draft.include} label="Incluir na lista deste mês" onClick={() => setDraft({ ...draft, include: !draft.include })} />
-          </div>
-        ) : null}
         <Button type="submit" size="lg" className="w-full">
           Salvar
         </Button>
@@ -369,7 +362,7 @@ export function AddDialog({ open, onOpenChange }: { open: boolean; onOpenChange:
           Cadastrar produto novo
         </Button>
       </Modal>
-      <ProductDialog open={open && creating} onOpenChange={(next) => (next ? setCreating(true) : onOpenChange(false))} />
+      <ProductDialog open={open && creating} onList onOpenChange={(next) => (next ? setCreating(true) : onOpenChange(false))} />
     </>
   );
 }
