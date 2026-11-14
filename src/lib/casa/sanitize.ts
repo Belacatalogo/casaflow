@@ -10,6 +10,12 @@ function themeOf(value: unknown): ThemeMode {
   return value === "light" || value === "dark" || value === "system" ? value : "system";
 }
 
+function cardOf(balance: unknown, at: unknown): number | null {
+  if (typeof at !== "string" || !at) return null;
+  if (balance == null || balance === "") return null;
+  return Math.max(0, num(balance, 0));
+}
+
 function num(value: unknown, fallback = 0): number {
   const parsed = typeof value === "number" ? value : Number(value);
   return Number.isFinite(parsed) ? parsed : fallback;
@@ -26,6 +32,8 @@ export function sanitizeSnapshot(raw: unknown): Snapshot | null {
     people: clamp(Math.round(num(value.settings.people, 1)), 1, 12),
     monthlyBudget: Math.max(0, num(value.settings.monthlyBudget, 0)),
     mealDaily: clamp(num(value.settings.mealDaily, DEFAULT_MEAL_DAILY), 0, 500),
+    cardBalance: cardOf(value.settings.cardBalance, value.settings.cardSetAt),
+    cardSetAt: cardOf(value.settings.cardBalance, value.settings.cardSetAt) == null ? null : String(value.settings.cardSetAt),
     theme: themeOf(value.settings.theme),
     listMode: listModeOf(value.settings.listMode),
   };

@@ -1,14 +1,14 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { Info, Sparkles, TriangleAlert } from "lucide-react";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { MonthSwitcher, Reveal } from "@/components/casa/chrome";
 import { PaceChart } from "@/components/casa/charts";
 import { Button, Card, PageSkeleton } from "@/components/ui/controls";
-import { formatMoney, greeting, monthTitle } from "@/lib/casa/format";
+import { formatMoney, greeting, monthLabel, monthTitle, currentMonthKey, parseDecimal } from "@/lib/casa/format";
 import { buildInsights, categorySlices, paceSeries, summarizeMonth } from "@/lib/casa/logic";
 import { linesForMode, missingLabel, pendingSummary } from "@/lib/casa/modes";
-import { monthVale } from "@/lib/casa/vale";
+import { cardPosition, monthVale } from "@/lib/casa/vale";
 import { useCasa } from "@/lib/casa/store";
 import { cn } from "@/lib/utils";
 
@@ -29,15 +29,27 @@ function Dashboard() {
   const products = useCasa((state) => state.products);
   const lines = useCasa((state) => state.lines);
   const viewMonth = useCasa((state) => state.viewMonth);
+  const updateSettings = useCasa((state) => state.updateSettings);
   const addProductToMonth = useCasa((state) => state.addProductToMonth);
   const now = useMemo(() => new Date(), []);
+  const [typed, setTyped] = useState("");
   const mode = settings.listMode ?? "completa";
   const vale = monthVale(settings.mealDaily ?? 30, viewMonth);
-  const budget = vale.total;
+  const card = cardPosition({
+    daily: settings.mealDaily ?? 30,
+    anchor: settings.cardBalance,
+    anchorAt: settings.cardSetAt,
+    lines,
+    now,
+  });
+  const usingCard = card.ready && viewMonth === currentMonthKey(now);
+  const budget = usingCard ? card.balance : vale.total;
   const scoped = useMemo(() => linesForMode(lines, products, mode, now), [lines, products, mode, now]);
   const totals = summarizeMonth(scoped, viewMonth, budget);
-  const points = paceSeries(scoped, viewMonth, budget, now);
+  const live = summarizeMonth(lines, currentMonthKey(now), card.balance);
+  const points = paceSeries(scoped, viewMonth, vale.total, now);
   const slices = categorySlices(scoped, categories, viewMonth);
+  const maxSlice = Math.max(1, ...slices.map((slice) => slice.actual + slice.pending));
   const insights = buildInsights({
     lines: scoped,
     products,
@@ -46,14 +58,14 @@ function Dashboard() {
     budget,
     people: settings.people,
     now,
+    limitName: usingCard ? "cartão" : "vale",
+    pace: !usingCard,
   });
-  const maxSlice = Math.max(1, ...slices.map((slice) => slice.actual + slice.pending));
-  const over = budget > 0 && totals.projected > budget;
-  const progress = budget > 0 ? Math.min(100, (totals.actual / budget) * 100) : 0;
   const ticket = totals.boughtCount > 0 ? totals.actual / totals.boughtCount : 0;
   const hasMonth = totals.count > 0 || totals.actual > 0;
   const usefulInsights = insights.filter((insight) => insight.id !== "empty");
-  const percent = budget > 0 ? Math.round((totals.actual / budget) * 100) : null;
+  const afterList = card.balance - live.pendingEst;
+  const afterCredit = afterList + (card.next?.amount ?? 0);
 
   return (
     <Reveal>
@@ -74,9 +86,96 @@ function Dashboard() {
         </div>
       </header>
 
+      <CardBalance />
+
       {hasMonth ? <FilledMonth /> : <EmptyMonth />}
     </Reveal>
   );
+
+  function saveCard() {
+    const value = parseDecimal(typed);
+    if (value == null || value < 0) {
+      toast("Informe o valor que está no cartão.");
+      return;
+    }
+    updateSettings({ cardBalance: value, cardSetAt: new Date().toISOString() });
+    toast.success("Saldo guardado. As próximas compras saem daqui.");
+  }
+
+  function CardBalance() {
+    const next = card.next;
+    const status =
+      live.pendingEst > 0 && card.balance < live.pendingEst
+        ? "Cartão baixo"
+        : live.pendingEst > 0 && afterList < 40
+          ? "Cobre a lista, sobra pouco"
+          : live.pendingEst <= 0
+            ? "Nada faltando na lista"
+            : "Cartão folgado";
+    if (!card.ready) {
+      return (
+        <section className="mt-5 overflow-hidden rounded-[2rem] bg-hero px-5 py-6 text-on-hero sm:px-7 sm:py-8">
+          <div className="h-1 w-10 rounded-full bg-gold" />
+          <h2 className="mt-5 font-display text-3xl tracking-tight">Quanto tem no cartão agora?</h2>
+          <p className="mt-2 max-w-md text-pretty text-on-hero-muted">
+            Coloque o saldo de hoje. O que você comprar a partir de agora sai desse valor. No último dia útil do mês entra o vale do mês seguinte.
+          </p>
+          <div className="mt-5 flex flex-col gap-2 sm:flex-row">
+            <input
+              className="h-12 rounded-full bg-white/10 px-4 text-lg text-on-hero outline-none placeholder:text-on-hero-muted"
+              inputMode="decimal"
+              placeholder="0,00"
+              value={typed}
+              onChange={(event) => setTyped(event.target.value)}
+            />
+            <Button className="bg-gold text-hero hover:bg-gold" onClick={saveCard}>
+              Guardar saldo
+            </Button>
+          </div>
+        </section>
+      );
+    }
+    return (
+      <section className="relative mt-5 overflow-hidden rounded-[2rem] bg-hero px-5 py-5 text-on-hero sm:px-6 sm:py-6">
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-[linear-gradient(180deg,transparent,rgb(132_78_40/0.5))]" />
+        <div className="relative">
+          <p className="text-sm text-on-hero-muted">Saldo no cartão</p>
+          <p className="mt-2 font-display text-4xl leading-none tabular-nums tracking-tight sm:text-6xl">{formatMoney(card.balance)}</p>
+          <p className="mt-3 text-sm text-gold">{status}</p>
+          <p className="mt-3 text-sm text-pretty text-on-hero-muted">
+            Você informou {formatMoney(settings.cardBalance ?? 0)}
+            {settings.cardSetAt ? ` em ${new Intl.DateTimeFormat("pt-BR", { day: "numeric", month: "short" }).format(new Date(settings.cardSetAt))}` : ""}.
+            {card.spent > 0 ? ` Desde então saiu ${formatMoney(card.spent)}.` : " Nenhuma compra saiu depois disso."}
+            {card.credited > 0 ? ` Entrou ${formatMoney(card.credited)}.` : ""}
+          </p>
+          {next ? (
+            <p className="mt-2 text-sm text-on-hero-muted">
+              {dayLabel(next.on)} entra {formatMoney(next.amount)}, o vale de {monthLabel(next.forMonth)}.
+            </p>
+          ) : null}
+          <div className="mt-5 grid grid-cols-2 gap-3 border-t border-white/10 pt-4">
+            <div>
+              <p className="text-[11px] tracking-[0.14em] text-on-hero-muted uppercase">
+                {live.pendingEst > 0 ? "Depois da lista" : "Neste mês já saiu"}
+              </p>
+              <p className="mt-1 font-display text-2xl tabular-nums text-gold">
+                {live.pendingEst > 0 ? formatMoney(afterList) : formatMoney(live.actual)}
+              </p>
+            </div>
+            <div>
+              <p className="text-[11px] tracking-[0.14em] text-on-hero-muted uppercase">Depois do crédito</p>
+              <p className="mt-1 font-display text-2xl tabular-nums">{formatMoney(live.pendingEst > 0 ? afterCredit : card.balance + (next?.amount ?? 0))}</p>
+            </div>
+          </div>
+          {live.pendingCount > 0 ? (
+            <Button asChild className="mt-5 bg-gold text-hero hover:bg-gold">
+              <Link to="/comprando">Ir comprar · {live.pendingCount}</Link>
+            </Button>
+          ) : null}
+        </div>
+      </section>
+    );
+  }
 
   function EmptyMonth() {
     return (
@@ -98,11 +197,6 @@ function Dashboard() {
               <Link to="/lista">Montar a lista</Link>
             </Button>
           )}
-          {budget <= 0 ? (
-            <Button asChild className="bg-white/10 text-on-hero hover:bg-white/15">
-              <Link to="/ajustes">Definir o vale</Link>
-            </Button>
-          ) : null}
         </div>
       </section>
     );
@@ -111,47 +205,6 @@ function Dashboard() {
   function FilledMonth() {
     return (
       <>
-        <section className="relative mt-5 overflow-hidden rounded-[2rem] bg-hero px-5 py-5 text-on-hero sm:px-6 sm:py-6">
-          <div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-[linear-gradient(180deg,transparent,rgb(132_78_40/0.5))]" />
-          <div className="relative">
-            <p className="text-sm text-on-hero-muted">Já gastei em {monthTitle(viewMonth)}</p>
-            <p className="mt-2 font-display text-4xl leading-none tabular-nums tracking-tight sm:text-6xl">{formatMoney(totals.actual)}</p>
-            <p className="mt-3 text-sm text-on-hero-muted">
-              {budget > 0 ? `do vale de ${formatMoney(budget)} · ${vale.days} dias úteis` : "Sem vale definido"}
-              {percent != null ? <span className="text-gold"> · {percent}%</span> : null}
-            </p>
-            <div className="mt-4 h-1.5 overflow-hidden rounded-full bg-white/15">
-              <div className={cn("h-full rounded-full", over ? "bg-terra" : "bg-gold")} style={{ width: `${progress}%` }} />
-            </div>
-            <div className="mt-5 grid grid-cols-2 gap-3 border-t border-white/10 pt-4">
-              <div>
-                <p className="text-[11px] tracking-[0.14em] text-on-hero-muted uppercase">Vai fechar em</p>
-                <p className="mt-1 font-display text-2xl tabular-nums text-gold">{formatMoney(totals.projected)}</p>
-              </div>
-              <div>
-                <p className="text-[11px] tracking-[0.14em] text-on-hero-muted uppercase">
-                  {budget <= 0 ? "Saldo" : over ? "Passa" : "Saldo"}
-                </p>
-                <p className="mt-1 font-display text-2xl tabular-nums">
-                  {budget <= 0 ? "—" : formatMoney(Math.abs(budget - totals.projected))}
-                </p>
-              </div>
-            </div>
-            <div className="mt-5 flex flex-col gap-2 sm:flex-row">
-              {totals.pendingCount > 0 ? (
-                <Button asChild className="bg-gold text-hero hover:bg-gold">
-                  <Link to="/comprando">Ir comprar · {totals.pendingCount}</Link>
-                </Button>
-              ) : null}
-              {budget <= 0 ? (
-                <Button asChild className="bg-white/10 text-on-hero hover:bg-white/15">
-                  <Link to="/ajustes">Definir o vale</Link>
-                </Button>
-              ) : null}
-            </div>
-          </div>
-        </section>
-
         <div className="mt-3 divide-y divide-line overflow-hidden rounded-[2rem] border border-line bg-surface shadow-card sm:grid sm:grid-cols-3 sm:divide-x sm:divide-y-0">
           <Stat label="Comprados" value={`${totals.boughtCount}/${totals.count}`} />
           <Stat label="Média" value={totals.boughtCount > 0 ? formatMoney(ticket) : "—"} />
@@ -161,7 +214,7 @@ function Dashboard() {
         <Card className="mt-3 rounded-[2rem]">
           <div className="flex items-baseline justify-between gap-3">
             <h2 className="font-display text-2xl text-ink">Gasto do mês</h2>
-            <p className="text-sm text-gold-deep">Linha dourada: vale do mês</p>
+            <p className="text-sm text-gold-deep">Linha dourada: vale deste mês</p>
           </div>
           <div className="mt-2">
             <PaceChart points={points} />
@@ -252,4 +305,10 @@ function Stat({ label, value }: { label: string; value: string }) {
       <p className="font-display text-2xl tabular-nums text-ink">{value}</p>
     </div>
   );
+}
+
+function dayLabel(key: string): string {
+  const [year, month, day] = key.split("-");
+  const name = monthLabel(`${year}-${month}`).replace(/ de \d+$/, "");
+  return `${Number(day)} de ${name}`;
 }

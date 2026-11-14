@@ -63,6 +63,8 @@ export function visitSnapshot(now = new Date()): Snapshot {
       people: 2,
       monthlyBudget: 1500,
       mealDaily: 30,
+      cardBalance: 120,
+      cardSetAt: now.toISOString(),
       theme: "system",
       listMode: "completa",
     },

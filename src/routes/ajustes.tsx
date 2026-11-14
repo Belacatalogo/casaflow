@@ -8,8 +8,8 @@ import { ICON_OPTIONS } from "@/components/casa/icons";
 import { SWATCHES } from "@/components/casa/dialogs";
 import { Button, Card, Field, Modal, PageSkeleton, fieldClass } from "@/components/ui/controls";
 import { sanitizeSnapshot } from "@/lib/casa/sanitize";
-import { decimalToInput, formatMoney, monthTitle, parseDecimal, shiftMonth, currentMonthKey } from "@/lib/casa/format";
-import { monthVale } from "@/lib/casa/vale";
+import { decimalToInput, formatMoney, monthLabel, parseDecimal } from "@/lib/casa/format";
+import { nextCredit, dayKey } from "@/lib/casa/vale";
 import { useCasa } from "@/lib/casa/store";
 import type { ListMode, Swatch, ThemeMode } from "@/lib/casa/types";
 import { cn } from "@/lib/utils";
@@ -49,6 +49,7 @@ function SettingsScreen() {
   const homeCode = useCasa((state) => state.homeCode);
   const [name, setName] = useState(settings.householdName);
   const [daily, setDaily] = useState(decimalToInput(settings.mealDaily ?? 30));
+  const [card, setCard] = useState(settings.cardBalance == null ? "" : decimalToInput(settings.cardBalance));
   const [categoryName, setCategoryName] = useState("");
   const [icon, setIcon] = useState("basket");
   const [swatch, setSwatch] = useState<Swatch>("terra");
@@ -58,7 +59,8 @@ function SettingsScreen() {
   useEffect(() => {
     setName(settings.householdName);
     setDaily(decimalToInput(settings.mealDaily ?? 30));
-  }, [settings.householdName, settings.mealDaily]);
+    setCard(settings.cardBalance == null ? "" : decimalToInput(settings.cardBalance));
+  }, [settings.householdName, settings.mealDaily, settings.cardBalance]);
 
   function exportData() {
     const state = useCasa.getState();
@@ -132,19 +134,29 @@ function SettingsScreen() {
             />
           </Field>
         </div>
+        <Field label="Saldo no cartão agora" hint="Compras feitas depois disso saem deste valor. O vale do mês seguinte entra no último dia útil.">
+          <input
+            className={fieldClass}
+            inputMode="decimal"
+            value={card}
+            onChange={(event) => setCard(event.target.value)}
+            onBlur={() => {
+              const value = parseDecimal(card);
+              if (value == null || value < 0 || value === settings.cardBalance) return;
+              updateSettings({ cardBalance: value, cardSetAt: new Date().toISOString() });
+              toast.success("Saldo do cartão atualizado.");
+            }}
+          />
+        </Field>
         <ul className="mt-4 grid gap-2 text-sm text-muted sm:grid-cols-3">
-          {[0, 1, 2].map((offset) => {
-            const key = shiftMonth(currentMonthKey(), offset);
-            const vale = monthVale(settings.mealDaily ?? 30, key);
-            return (
-              <li key={key} className="rounded-2xl bg-sunken px-3 py-2">
-                <p className="font-medium text-ink">{monthTitle(key)}</p>
-                <p>
-                  {vale.days} dias úteis · {formatMoney(vale.total)}
-                </p>
-              </li>
-            );
-          })}
+          {upcomingCredits(settings.mealDaily ?? 30).map((credit) => (
+            <li key={credit.on} className="rounded-2xl bg-sunken px-3 py-2">
+              <p className="font-medium text-ink">{dayText(credit.on)}</p>
+              <p>
+                Entra {formatMoney(credit.amount)} · vale de {monthLabel(credit.forMonth)}
+              </p>
+            </li>
+          ))}
         </ul>
         <div className="mt-4 flex items-center justify-between gap-3">
           <div>
@@ -331,6 +343,19 @@ function SettingsScreen() {
       </Modal>
     </Reveal>
   );
+}
+
+function upcomingCredits(daily: number) {
+  const first = nextCredit(daily, dayKey(new Date()));
+  const second = nextCredit(daily, first.on);
+  const third = nextCredit(daily, second.on);
+  return [first, second, third];
+}
+
+function dayText(key: string): string {
+  const [year, month, day] = key.split("-");
+  const name = monthLabel(`${year}-${month}`).replace(/ de \d+$/, "");
+  return `${Number(day)} de ${name}`;
 }
 
 function swatchLabel(swatch: Swatch) {

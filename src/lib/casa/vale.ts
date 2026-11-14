@@ -26,6 +26,96 @@ export function monthVale(daily: number, monthKey: string): { days: number; dail
   return { days, daily: rate, total: Math.round(rate * days * 100) / 100 };
 }
 
+export type ValeCredit = { on: string; forMonth: string; amount: number };
+
+export type CardLine = { status: string; boughtAt: string | null; actualTotal: number | null };
+
+/** Last weekday that is not a Goiânia holiday, as YYYY-MM-DD. */
+export function lastBusinessDay(monthKey: string): string {
+  const [year, month] = monthKey.split("-").map(Number);
+  const last = new Date(year, month, 0).getDate();
+  for (let day = last; day >= 1; day -= 1) {
+    if (isBusinessDay(year, month, day)) return dateKey(year, month, day);
+  }
+  return dateKey(year, month, 1);
+}
+
+export function dayKey(date: Date): string {
+  return dateKey(date.getFullYear(), date.getMonth() + 1, date.getDate());
+}
+
+/** Vale of the next month, paid on the last business day of this one. */
+export function creditsBetween(daily: number, afterDay: string, throughDay: string): ValeCredit[] {
+  const found: ValeCredit[] = [];
+  let month = shiftKey(afterDay.slice(0, 7), -1);
+  for (let guard = 0; guard < 36 && month <= throughDay.slice(0, 7); guard += 1) {
+    const credit = creditFor(month, daily);
+    if (credit.on > afterDay && credit.on <= throughDay) found.push(credit);
+    month = shiftKey(month, 1);
+  }
+  return found;
+}
+
+export function nextCredit(daily: number, afterDay: string): ValeCredit {
+  let month = shiftKey(afterDay.slice(0, 7), -1);
+  for (let guard = 0; guard < 36; guard += 1) {
+    const credit = creditFor(month, daily);
+    if (credit.on > afterDay) return credit;
+    month = shiftKey(month, 1);
+  }
+  return creditFor(month, daily);
+}
+
+export function cardPosition(input: {
+  daily: number;
+  anchor: number | null;
+  anchorAt: string | null;
+  lines: CardLine[];
+  now?: Date;
+}): { ready: boolean; balance: number; spent: number; credited: number; credits: ValeCredit[]; next: ValeCredit | null } {
+  const now = input.now ?? new Date();
+  if (input.anchor == null || !input.anchorAt) {
+    return { ready: false, balance: 0, spent: 0, credited: 0, credits: [], next: nextCredit(input.daily, dayKey(now)) };
+  }
+  const anchorDate = new Date(input.anchorAt);
+  const afterDay = Number.isNaN(anchorDate.getTime()) ? "9999-12-31" : dayKey(anchorDate);
+  const credits = creditsBetween(input.daily, afterDay, dayKey(now));
+  const credited = roundMoney(credits.reduce((sum, credit) => sum + credit.amount, 0));
+  const spent = roundMoney(
+    input.lines.reduce((sum, line) => {
+      if (line.status !== "bought" || !line.boughtAt || line.boughtAt <= input.anchorAt!) return sum;
+      return sum + (line.actualTotal ?? 0);
+    }, 0),
+  );
+  return {
+    ready: true,
+    balance: roundMoney(input.anchor + credited - spent),
+    spent,
+    credited,
+    credits,
+    next: nextCredit(input.daily, dayKey(now)),
+  };
+}
+
+function creditFor(payMonth: string, daily: number): ValeCredit {
+  const forMonth = shiftKey(payMonth, 1);
+  return { on: lastBusinessDay(payMonth), forMonth, amount: monthVale(daily, forMonth).total };
+}
+
+function shiftKey(monthKey: string, delta: number): string {
+  const [year, month] = monthKey.split("-").map(Number);
+  const date = new Date(year, month - 1 + delta, 1);
+  return dateKey(date.getFullYear(), date.getMonth() + 1, 1).slice(0, 7);
+}
+
+function dateKey(year: number, month: number, day: number): string {
+  return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+}
+
+function roundMoney(value: number): number {
+  return Math.round(value * 100) / 100;
+}
+
 function key(month: number, day: number): string {
   return `${month}-${day}`;
 }

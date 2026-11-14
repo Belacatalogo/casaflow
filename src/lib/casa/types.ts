@@ -8,8 +8,11 @@ export type Settings = {
   householdName: string;
   people: number;
   monthlyBudget: number;
-  /** Reais do vale por dia útil. O saldo do mês é esse valor vezes os dias úteis. */
+  /** Reais do vale por dia útil. Entra no cartão no último dia útil do mês anterior. */
   mealDaily: number;
+  /** Saldo informado do cartão. Compras depois disso saem daqui. */
+  cardBalance: number | null;
+  cardSetAt: string | null;
   theme: ThemeMode;
   listMode: ListMode;
 };
@@ -80,6 +83,8 @@ export const defaultSettings: Settings = {
   people: 1,
   monthlyBudget: 0,
   mealDaily: 30,
+  cardBalance: null,
+  cardSetAt: null,
   theme: "system",
   listMode: "completa",
 };

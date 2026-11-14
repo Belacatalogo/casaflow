@@ -237,6 +237,8 @@ export function buildInsights(input: {
   budget: number;
   people: number;
   now?: Date;
+  limitName?: string;
+  pace?: boolean;
 }): Insight[] {
   const now = input.now ?? new Date();
   const totals = summarizeMonth(input.lines, input.month, input.budget);
@@ -254,23 +256,26 @@ export function buildInsights(input: {
     ];
   }
 
-  if (input.budget > 0 && totals.projected > input.budget) {
+  const name = input.limitName ?? "vale";
+  const hasLimit = input.budget > 0 || name === "cartão";
+
+  if (hasLimit && totals.projected > input.budget) {
     insights.push({
       id: "over",
       tone: "warn",
-      title: "A lista passa do vale",
+      title: `A lista passa do ${name}`,
       detail: `Se comprar tudo, ${monthLabel(input.month)} fica em ${formatMoney(totals.projected)}. São ${formatMoney(totals.projected - input.budget)} a mais.`,
     });
-  } else if (input.budget > 0 && totals.projected > 0) {
+  } else if (hasLimit && totals.projected > 0) {
     insights.push({
       id: "fit",
       tone: "good",
-      title: isCurrent ? "Cabe no vale" : "Ficou dentro do vale",
+      title: isCurrent ? `Cabe no ${name}` : `Ficou dentro do ${name}`,
       detail: `A previsão é ${formatMoney(totals.projected)}. Sobram ${formatMoney(input.budget - totals.projected)}.`,
     });
   }
 
-  if (isCurrent && input.budget > 0 && totals.actual > 0) {
+  if (input.pace !== false && isCurrent && input.budget > 0 && totals.actual > 0) {
     const day = now.getDate();
     const days = daysInMonth(input.month);
     const pace = input.budget * (day / days);

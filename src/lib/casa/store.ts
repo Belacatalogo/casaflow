@@ -216,6 +216,8 @@ export const useCasa = create<CasaState>((set, get) => ({
     if (patch.people != null) settings.people = Math.min(12, Math.max(1, Math.round(patch.people)));
     if (patch.monthlyBudget != null) settings.monthlyBudget = Math.max(0, patch.monthlyBudget);
     if (patch.mealDaily != null) settings.mealDaily = Math.min(500, Math.max(0, patch.mealDaily));
+    if (patch.cardBalance != null) settings.cardBalance = Math.max(0, patch.cardBalance);
+    if (patch.cardSetAt != null) settings.cardSetAt = patch.cardSetAt;
     if (patch.householdName != null) settings.householdName = patch.householdName.slice(0, 48);
     set({ settings });
     if (patch.theme) applyTheme(settings.theme);
