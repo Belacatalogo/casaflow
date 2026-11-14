@@ -1,5 +1,7 @@
 export type ThemeMode = "light" | "dark" | "system";
 
+export type ListMode = "completa" | "economia" | "acabando";
+
 export type Swatch = "terra" | "gold" | "clay" | "sand" | "ink" | "bark";
 
 export type Settings = {
@@ -7,6 +9,7 @@ export type Settings = {
   people: number;
   monthlyBudget: number;
   theme: ThemeMode;
+  listMode: ListMode;
 };
 
 export type Category = {
@@ -46,6 +49,8 @@ export type ShopLine = {
   status: LineStatus;
   boughtAt: string | null;
   store: string;
+  /** Kept on the list even in Economia or Acabando. */
+  hold?: boolean;
 };
 
 export type Snapshot = {
@@ -60,4 +65,5 @@ export const defaultSettings: Settings = {
   people: 1,
   monthlyBudget: 0,
   theme: "system",
+  listMode: "completa",
 };

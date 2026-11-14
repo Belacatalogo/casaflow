@@ -8,7 +8,7 @@ import { Button, Card, Field, Modal, PageSkeleton, fieldClass } from "@/componen
 import { sanitizeSnapshot } from "@/lib/casa/sanitize";
 import { decimalToInput, parseDecimal } from "@/lib/casa/format";
 import { useCasa } from "@/lib/casa/store";
-import type { Swatch, ThemeMode } from "@/lib/casa/types";
+import type { ListMode, Swatch, ThemeMode } from "@/lib/casa/types";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/ajustes")({
@@ -21,6 +21,12 @@ function SettingsPage() {
   if (!ready) return <PageSkeleton />;
   return <SettingsScreen />;
 }
+
+const MODES: { id: ListMode; label: string }[] = [
+  { id: "completa", label: "Tudo" },
+  { id: "economia", label: "Economia" },
+  { id: "acabando", label: "Acabando" },
+];
 
 const THEMES: { id: ThemeMode; label: string }[] = [
   { id: "light", label: "Claro" },
@@ -108,6 +114,22 @@ function SettingsScreen() {
             <Button variant="secondary" size="icon" aria-label="Mais uma pessoa" onClick={() => updateSettings({ people: settings.people + 1 })}>
               +
             </Button>
+          </div>
+        </div>
+        <div className="mt-5">
+          <p className="text-sm font-medium text-ink">Modo da lista</p>
+          <p className="text-sm text-muted">Economia deixa só o essencial, na quantidade dos meses anteriores. Acabando deixa só o que está no fim.</p>
+          <div className="mt-2 grid grid-cols-3 gap-2">
+            {MODES.map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                className={cn("h-11 rounded-full text-sm font-medium", (settings.listMode ?? "completa") === item.id ? "bg-hero text-on-hero" : "bg-sunken text-ink")}
+                onClick={() => updateSettings({ listMode: item.id })}
+              >
+                {item.label}
+              </button>
+            ))}
           </div>
         </div>
         <div className="mt-5">

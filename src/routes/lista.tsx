@@ -1,13 +1,14 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Check, Pencil, Plus, Search } from "lucide-react";
 import { useMemo, useState } from "react";
-import { MonthSwitcher, Reveal } from "@/components/casa/chrome";
+import { MonthSwitcher, ModeSwitch, Reveal } from "@/components/casa/chrome";
 import { CategoryGlyph } from "@/components/casa/icons";
 import { AddDialog, BuyDialog, PlanDialog, PurchaseDialog } from "@/components/casa/dialogs";
 import { ReceiptDialog } from "@/components/casa/receipt-dialog";
 import { Button, Card, EmptyState, PageSkeleton, fieldClass } from "@/components/ui/controls";
 import { formatMoney, formatQty } from "@/lib/casa/format";
-import { lineActual, lineEstimate, summarizeMonth } from "@/lib/casa/logic";
+import { lineActual, summarizeMonth } from "@/lib/casa/logic";
+import { adviseLine, linesForMode } from "@/lib/casa/modes";
 import { useCasa } from "@/lib/casa/store";
 import type { ShopLine } from "@/lib/casa/types";
 import { cn } from "@/lib/utils";
@@ -29,6 +30,7 @@ function Lista() {
   const lines = useCasa((state) => state.lines);
   const viewMonth = useCasa((state) => state.viewMonth);
   const settings = useCasa((state) => state.settings);
+  const updateLine = useCasa((state) => state.updateLine);
   const setStatus = useCasa((state) => state.setStatus);
   const generateMonth = useCasa((state) => state.generateMonth);
   const [query, setQuery] = useState("");
@@ -38,7 +40,10 @@ function Lista() {
   const [scan, setScan] = useState(false);
   const [buying, setBuying] = useState<ShopLine | null>(null);
   const [editing, setEditing] = useState<ShopLine | null>(null);
-  const totals = summarizeMonth(lines, viewMonth, settings.monthlyBudget);
+  const now = useMemo(() => new Date(), []);
+  const mode = settings.listMode ?? "completa";
+  const scoped = useMemo(() => linesForMode(lines, products, mode, now), [lines, products, mode, now]);
+  const totals = summarizeMonth(scoped, viewMonth, settings.monthlyBudget);
   const mine = useMemo(
     () =>
       lines
@@ -50,6 +55,9 @@ function Lista() {
   const ordered = [...categories].sort((a, b) => a.order - b.order);
   const skipped = mine.filter((line) => line.status === "skipped");
   const active = mine.filter((line) => line.status !== "skipped");
+  const adviceFor = (line: ShopLine) => adviseLine(line, products.find((product) => product.id === line.productId), lines, mode, now);
+  const shown = active.filter((line) => line.status !== "pending" || adviceFor(line).show);
+  const waiting = active.filter((line) => line.status === "pending" && !adviceFor(line).show);
   const hasRecurring = products.some((product) => product.recurring);
   const done = totals.count > 0 ? Math.round((totals.boughtCount / totals.count) * 100) : 0;
 
@@ -73,6 +81,9 @@ function Lista() {
         <div className="mt-4 rounded-full bg-sunken">
           <MonthSwitcher className="w-full" titleClassName="min-w-0 flex-1 truncate px-1 text-base sm:text-lg" />
         </div>
+        <div className="mt-3">
+          <ModeSwitch />
+        </div>
       </header>
 
       <div className="relative mt-4">
@@ -93,7 +104,7 @@ function Lista() {
         </Button>
       </div>
 
-      {active.length === 0 ? (
+      {shown.length === 0 && waiting.length === 0 ? (
         <div className="mt-5">
           <EmptyState
             title={query ? "Nada com esse nome" : "Lista vazia"}
@@ -118,9 +129,13 @@ function Lista() {
       ) : (
         <div className="mt-5 flex flex-col gap-3">
           {ordered.map((category) => {
-            const rows = active.filter((line) => line.categoryId === category.id);
+            const rows = shown.filter((line) => line.categoryId === category.id);
             if (rows.length === 0) return null;
-            const categoryTotal = rows.reduce((sum, line) => sum + (line.status === "bought" ? lineActual(line) : lineEstimate(line)), 0);
+            const categoryTotal = rows.reduce((sum, line) => {
+              const advice = line.status === "pending" ? adviceFor(line) : null;
+              const qty = line.status === "bought" ? line.qtyBought : (advice?.qty ?? line.qtyPlanned);
+              return sum + (line.status === "bought" ? lineActual(line) : qty * line.estimatedUnitPrice);
+            }, 0);
             return (
               <Card key={category.id} className="overflow-hidden rounded-[2rem] p-0 sm:p-0">
                 <div className="flex items-center gap-2 px-4 py-3">
@@ -133,7 +148,9 @@ function Lista() {
                 <ul>
                   {rows.map((line) => {
                     const bought = line.status === "bought";
-                    const value = bought ? lineActual(line) : lineEstimate(line);
+                    const advice = bought ? null : adviceFor(line);
+                    const qty = bought ? line.qtyBought : (advice?.qty ?? line.qtyPlanned);
+                    const value = bought ? lineActual(line) : qty * line.estimatedUnitPrice;
                     return (
                       <li key={line.id} className="flex items-center gap-1 border-t border-line px-2 py-1.5">
                         <button
@@ -155,10 +172,11 @@ function Lista() {
                             <p className={cn("shrink-0 tabular-nums", bought ? "text-muted" : "font-medium text-ink")}>{formatMoney(value)}</p>
                           </div>
                           <p className="truncate text-sm text-muted">
-                            {formatQty(bought ? line.qtyBought : line.qtyPlanned)} {line.unit}
+                            {formatQty(qty)} {line.unit}
                             {line.store ? ` · ${line.store}` : ""}
                             {bought ? " · pago" : ""}
                           </p>
+                          {advice && advice.qty !== line.qtyPlanned ? <p className="text-sm text-gold-deep">{advice.reason}</p> : null}
                         </div>
                         <button
                           type="button"
@@ -177,6 +195,25 @@ function Lista() {
           })}
         </div>
       )}
+
+      {waiting.length > 0 ? (
+        <Card className="mt-3 rounded-[2rem]">
+          <h2 className="font-medium text-ink">Pode esperar</h2>
+          <ul className="mt-2">
+            {waiting.map((line) => (
+              <li key={line.id} className="flex items-center justify-between gap-3 border-t border-line py-2 first:border-t-0">
+                <span className="min-w-0">
+                  <span className="block truncate text-ink">{line.name}</span>
+                  <span className="block text-sm text-muted">{adviceFor(line).reason}</span>
+                </span>
+                <Button variant="ghost" onClick={() => updateLine(line.id, { hold: true })}>
+                  Manter
+                </Button>
+              </li>
+            ))}
+          </ul>
+        </Card>
+      ) : null}
 
       {skipped.length > 0 ? (
         <Card className="mt-3 rounded-[2rem]">

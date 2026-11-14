@@ -3,7 +3,8 @@ import { motion, useReducedMotion } from "framer-motion";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import type { ReactNode } from "react";
 import { monthTitle } from "@/lib/casa/format";
-import { useMonthShift } from "@/lib/casa/store";
+import { useMonthShift, useCasa } from "@/lib/casa/store";
+import type { ListMode } from "@/lib/casa/types";
 import { Button } from "@/components/ui/controls";
 import { cn } from "@/lib/utils";
 
@@ -32,6 +33,37 @@ export function MonthSwitcher({ className, titleClassName }: { className?: strin
       <Button variant="ghost" size="icon" aria-label="Próximo mês" onClick={next}>
         <ChevronRight className="size-5" />
       </Button>
+    </div>
+  );
+}
+
+const MODE_OPTIONS: { id: ListMode; label: string }[] = [
+  { id: "completa", label: "Tudo" },
+  { id: "economia", label: "Economia" },
+  { id: "acabando", label: "Acabando" },
+];
+
+export function ModeSwitch() {
+  const mode = useCasa((state) => state.settings.listMode) ?? "completa";
+  const updateSettings = useCasa((state) => state.updateSettings);
+  const current = MODE_OPTIONS.find((item) => item.id === mode) ?? MODE_OPTIONS[0];
+  return (
+    <div>
+      <div className="grid grid-cols-3 gap-1 rounded-full bg-sunken p-1" role="group" aria-label="Modo da lista">
+        {MODE_OPTIONS.map((item) => (
+          <button
+            key={item.id}
+            type="button"
+            aria-pressed={mode === item.id}
+            className={cn("h-10 rounded-full text-sm font-medium", mode === item.id ? "bg-hero text-on-hero" : "text-muted")}
+            onClick={() => updateSettings({ listMode: item.id })}
+          >
+            {item.label}
+          </button>
+        ))}
+      </div>
+      {current.id === "economia" ? <p className="mt-2 text-sm text-muted">Só o que a casa costuma usar e já está acabando. A quantidade segue os meses anteriores.</p> : null}
+      {current.id === "acabando" ? <p className="mt-2 text-sm text-muted">Só o que está no fim. O que ainda dura fica de fora.</p> : null}
     </div>
   );
 }

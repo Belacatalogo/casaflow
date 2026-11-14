@@ -99,6 +99,7 @@ export const useCasa = create<CasaState>((set, get) => ({
       applyTheme(snapshot.settings.theme);
       set({
         ...snapshot,
+        settings: { ...defaultSettings, ...snapshot.settings },
         ready: true,
         error: null,
         viewMonth: storedMonth || currentMonthKey(),

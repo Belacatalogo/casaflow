@@ -1,4 +1,5 @@
 import { clamp } from "@/lib/casa/format";
+import { listModeOf } from "@/lib/casa/modes";
 import type { Category, LineStatus, Product, Settings, ShopLine, Snapshot, Swatch, ThemeMode } from "@/lib/casa/types";
 
 const SWATCHES = new Set<Swatch>(["terra", "gold", "clay", "sand", "ink", "bark"]);
@@ -24,6 +25,7 @@ export function sanitizeSnapshot(raw: unknown): Snapshot | null {
     people: clamp(Math.round(num(value.settings.people, 1)), 1, 12),
     monthlyBudget: Math.max(0, num(value.settings.monthlyBudget, 0)),
     theme: themeOf(value.settings.theme),
+    listMode: listModeOf(value.settings.listMode),
   };
   const categories: Category[] = value.categories
     .filter((category) => category && typeof category.id === "string" && typeof category.name === "string")
@@ -65,6 +67,7 @@ export function sanitizeSnapshot(raw: unknown): Snapshot | null {
         status,
         boughtAt: typeof line.boughtAt === "string" ? line.boughtAt : null,
         store: String(line.store ?? "").slice(0, 40),
+        hold: line.hold === true ? true : undefined,
       };
     });
   return { settings, categories, products, lines };

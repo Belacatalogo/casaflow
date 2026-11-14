@@ -7,6 +7,7 @@ import { PaceChart } from "@/components/casa/charts";
 import { Button, Card, PageSkeleton } from "@/components/ui/controls";
 import { formatMoney, greeting, monthTitle } from "@/lib/casa/format";
 import { buildInsights, categorySlices, paceSeries, summarizeMonth } from "@/lib/casa/logic";
+import { linesForMode } from "@/lib/casa/modes";
 import { useCasa } from "@/lib/casa/store";
 import { cn } from "@/lib/utils";
 
@@ -29,11 +30,13 @@ function Dashboard() {
   const viewMonth = useCasa((state) => state.viewMonth);
   const addProductToMonth = useCasa((state) => state.addProductToMonth);
   const now = useMemo(() => new Date(), []);
-  const totals = summarizeMonth(lines, viewMonth, settings.monthlyBudget);
-  const points = paceSeries(lines, viewMonth, settings.monthlyBudget, now);
-  const slices = categorySlices(lines, categories, viewMonth);
+  const mode = settings.listMode ?? "completa";
+  const scoped = useMemo(() => linesForMode(lines, products, mode, now), [lines, products, mode, now]);
+  const totals = summarizeMonth(scoped, viewMonth, settings.monthlyBudget);
+  const points = paceSeries(scoped, viewMonth, settings.monthlyBudget, now);
+  const slices = categorySlices(scoped, categories, viewMonth);
   const insights = buildInsights({
-    lines,
+    lines: scoped,
     products,
     categories,
     month: viewMonth,
@@ -56,6 +59,8 @@ function Dashboard() {
         <h1 className="mt-1 font-display text-[2rem] leading-none tracking-tight text-ink sm:text-5xl">{settings.householdName}</h1>
         <p className="mt-2 text-sm text-muted">
           {settings.people} {settings.people === 1 ? "pessoa" : "pessoas"} · só neste celular
+          {mode === "economia" ? " · previsão no modo economia" : ""}
+          {mode === "acabando" ? " · previsão só do que está acabando" : ""}
         </p>
         <div className="mt-4 rounded-full bg-sunken">
           <MonthSwitcher className="w-full" titleClassName="min-w-0 flex-1 truncate px-1 text-base sm:text-lg" />
