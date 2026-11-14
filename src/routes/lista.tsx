@@ -3,7 +3,7 @@ import { Check, Pencil, Plus, Search } from "lucide-react";
 import { useMemo, useState } from "react";
 import { MonthSwitcher, ModeSwitch, Reveal } from "@/components/casa/chrome";
 import { CategoryGlyph } from "@/components/casa/icons";
-import { AddDialog, BuyDialog, PlanDialog, PurchaseDialog } from "@/components/casa/dialogs";
+import { AddDialog, BuyDialog, PlanDialog, ProductHistoryDialog, PurchaseDialog } from "@/components/casa/dialogs";
 import { ReceiptDialog } from "@/components/casa/receipt-dialog";
 import { Button, Card, EmptyState, PageSkeleton, fieldClass } from "@/components/ui/controls";
 import { formatMoney, formatQty, monthTitle } from "@/lib/casa/format";
@@ -12,7 +12,7 @@ import { adviseLine, linesForMode, missingLabel, pendingSummary } from "@/lib/ca
 import { coverageText } from "@/lib/casa/stock";
 import { useCasa } from "@/lib/casa/store";
 import { monthVale } from "@/lib/casa/vale";
-import type { ShopLine } from "@/lib/casa/types";
+import type { Product, ShopLine } from "@/lib/casa/types";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/lista")({
@@ -42,6 +42,7 @@ function Lista() {
   const [scan, setScan] = useState(false);
   const [buying, setBuying] = useState<ShopLine | null>(null);
   const [editing, setEditing] = useState<ShopLine | null>(null);
+  const [history, setHistory] = useState<Product | null>(null);
   const now = useMemo(() => new Date(), []);
   const mode = settings.listMode ?? "completa";
   const scoped = useMemo(() => linesForMode(lines, products, mode, now), [lines, products, mode, now]);
@@ -181,16 +182,18 @@ function Lista() {
                           <Check className="size-4" />
                         </button>
                         <div className="min-w-0 flex-1">
-                          <div className="flex items-baseline justify-between gap-2">
-                            <p className={cn("truncate font-medium", bought ? "text-muted line-through decoration-line" : "text-ink")}>{line.name}</p>
-                            <p className={cn("shrink-0 tabular-nums", bought ? "text-muted" : "font-medium text-ink")}>{formatMoney(value)}</p>
-                          </div>
-                          <p className="truncate text-sm text-muted">
-                            {formatQty(qty)} {line.unit}
-                            {line.store ? ` · ${line.store}` : ""}
-                            {bought ? (line.offCard ? " · fora do cartão" : " · cartão") : ""}
-                            {product && coverageText(product) ? ` · ${coverageText(product).toLowerCase()}` : ""}
-                          </p>
+                          <button type="button" className="w-full text-left" onClick={() => product && setHistory(product)}>
+                            <span className="flex items-baseline justify-between gap-2">
+                              <span className={cn("truncate font-medium", bought ? "text-muted line-through decoration-line" : "text-ink")}>{line.name}</span>
+                              <span className={cn("shrink-0 tabular-nums", bought ? "text-muted" : "font-medium text-ink")}>{value > 0 ? formatMoney(value) : "sem preço"}</span>
+                            </span>
+                            <span className="block truncate text-sm text-muted">
+                              {formatQty(qty)} {line.unit}
+                              {line.store ? ` · ${line.store}` : ""}
+                              {bought ? (line.offCard ? " · fora do cartão" : " · cartão") : ""}
+                              {product && coverageText(product) ? ` · ${coverageText(product).toLowerCase()}` : ""}
+                            </span>
+                          </button>
                           {advice && advice.qty !== line.qtyPlanned ? <p className="text-sm text-gold-deep">{advice.reason}</p> : null}
                         </div>
                         <button
@@ -258,6 +261,7 @@ function Lista() {
       />
       <BuyDialog line={buying} onOpenChange={(open) => !open && setBuying(null)} />
       <PlanDialog line={editing} onOpenChange={(open) => !open && setEditing(null)} />
+      <ProductHistoryDialog product={history} onOpenChange={(open) => !open && setHistory(null)} />
     </Reveal>
   );
 }

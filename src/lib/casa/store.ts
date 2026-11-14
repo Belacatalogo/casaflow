@@ -486,6 +486,7 @@ export const useCasa = create<CasaState>((set, get) => ({
           unit: lineUnit,
           qtyBought: qty,
           actualTotal: total,
+          estimatedUnitPrice: unitPrice,
           store: storeName || line.store,
           boughtAt: now,
           offCard: item.offCard ? true : undefined,
@@ -516,7 +517,7 @@ export const useCasa = create<CasaState>((set, get) => ({
     }
     set({ products, lines });
     persist(get);
-    toast.success(count === 1 ? "Compra lançada." : `${count} compras lançadas.`);
+    toast.success(count === 1 ? "Produto lançado e salvo." : `${count} produtos lançados. Os que faltavam foram criados.`);
     return count;
   },
 

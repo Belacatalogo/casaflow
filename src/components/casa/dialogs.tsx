@@ -2,8 +2,9 @@ import { toast } from "sonner";
 import { categoryForGuess, guessProduct } from "@/lib/casa/classify";
 import { useEffect, useMemo, useState } from "react";
 import { SUGGESTED_STORES } from "@/lib/casa/seed";
-import { decimalToInput, formatMoney, formatQty, parseDecimal } from "@/lib/casa/format";
-import { lineEstimate, suggestQty } from "@/lib/casa/logic";
+import { decimalToInput, formatMoney, formatQty, monthTitle, parseDecimal } from "@/lib/casa/format";
+import { lineEstimate, productHistory, suggestQty } from "@/lib/casa/logic";
+import { coverageText } from "@/lib/casa/stock";
 import { useCasa } from "@/lib/casa/store";
 import type { Product, ShopLine } from "@/lib/casa/types";
 import { CategoryGlyph, ICON_OPTIONS } from "@/components/casa/icons";
@@ -102,6 +103,7 @@ export function ProductDialog({
   const addProductToMonth = useCasa((state) => state.addProductToMonth);
   const [draft, setDraft] = useState<ProductDraft>(() => emptyDraft(categories[0]?.id ?? ""));
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [details, setDetails] = useState(false);
   const [touched, setTouched] = useState({ category: false, unit: false, coverage: false, recurring: false });
   const guess = guessProduct(draft.name);
   const guessedCategory = categoryForGuess(categories, guess);
@@ -109,6 +111,7 @@ export function ProductDialog({
   useEffect(() => {
     if (!open) return;
     setErrors({});
+    setDetails(Boolean(product));
     setTouched({ category: Boolean(product), unit: Boolean(product), coverage: Boolean(product), recurring: Boolean(product) });
     setDraft(product ? fromProduct(product) : emptyDraft(categories[0]?.id ?? ""));
   }, [open, product, categories]);
@@ -129,16 +132,16 @@ export function ProductDialog({
   }
 
   function save() {
-    const defaultQty = parseDecimal(draft.defaultQty);
-    const estimatedUnitPrice = parseDecimal(draft.estimatedUnitPrice);
-    const coverageDays = parseDecimal(draft.coverageDays);
+    const defaultQty = draft.defaultQty.trim() === "" ? 1 : parseDecimal(draft.defaultQty);
+    const estimatedUnitPrice = draft.estimatedUnitPrice.trim() === "" ? 0 : parseDecimal(draft.estimatedUnitPrice);
+    const coverageDays = draft.coverageDays.trim() === "" ? (product?.coverageDays ?? guess?.coverageDays ?? 30) : parseDecimal(draft.coverageDays);
     const next: Record<string, string> = {};
     if (draft.name.trim().length < 2) next.name = "Dê um nome ao produto.";
     if (!draft.categoryId) next.categoryId = "Escolha uma categoria.";
     if (!draft.unit.trim()) next.unit = "Informe a unidade.";
     if (defaultQty == null || defaultQty <= 0) next.defaultQty = "Quantidade maior que zero.";
-    if (estimatedUnitPrice == null || estimatedUnitPrice <= 0) next.estimatedUnitPrice = "Informe o preço.";
-    if (coverageDays == null || coverageDays < 1) next.coverageDays = "Quantos dias uma unidade dura?";
+    if (estimatedUnitPrice == null || estimatedUnitPrice < 0) next.estimatedUnitPrice = "Preço inválido.";
+    if (coverageDays == null || coverageDays < 1) next.coverageDays = "Duração inválida.";
     setErrors(next);
     if (Object.keys(next).length || defaultQty == null || estimatedUnitPrice == null || coverageDays == null) return;
     const id = saveProduct(
@@ -167,7 +170,7 @@ export function ProductDialog({
       open={open}
       onOpenChange={onOpenChange}
       title={product ? "Editar produto" : "Novo produto"}
-      description="Nome, unidade e quanto tempo uma unidade dura."
+      description={product ? "O preço e a duração o sistema completa sozinho." : "Só o nome. O preço entra pela nota. A duração, quando o produto acabar."}
     >
       <form
         className="flex flex-col gap-4"
@@ -186,6 +189,9 @@ export function ProductDialog({
             {guessedCategory && !touched.category ? ". Pode trocar abaixo." : ""}
           </p>
         ) : null}
+        {product && coverageText(product) ? <p className="-mt-2 text-sm text-muted">{coverageText(product)}. O sistema aprende quando acaba.</p> : null}
+        {details ? (
+          <>
         <Field label="Categoria" error={errors.categoryId}>
           <select
             className={fieldClass}
@@ -217,22 +223,9 @@ export function ProductDialog({
             <input inputMode="decimal" className={fieldClass} value={draft.defaultQty} onChange={(event) => setDraft({ ...draft, defaultQty: event.target.value })} />
           </Field>
         </div>
-        <div className="grid grid-cols-2 gap-3">
-          <Field label="Preço estimado" error={errors.estimatedUnitPrice}>
-            <input inputMode="decimal" className={fieldClass} value={draft.estimatedUnitPrice} onChange={(event) => setDraft({ ...draft, estimatedUnitPrice: event.target.value })} placeholder="0,00" />
-          </Field>
-          <Field label="Dura quantos dias" error={errors.coverageDays} hint="Uma unidade">
-            <input
-              inputMode="numeric"
-              className={fieldClass}
-              value={draft.coverageDays}
-              onChange={(event) => {
-                setTouched((current) => ({ ...current, coverage: true }));
-                setDraft({ ...draft, coverageDays: event.target.value });
-              }}
-            />
-          </Field>
-        </div>
+        <Field label="Preço, se souber" error={errors.estimatedUnitPrice} hint="Opcional. A nota preenche.">
+          <input inputMode="decimal" className={fieldClass} value={draft.estimatedUnitPrice} onChange={(event) => setDraft({ ...draft, estimatedUnitPrice: event.target.value })} placeholder="0,00" />
+        </Field>
         <div className="flex items-center justify-between gap-3 rounded-2xl bg-sunken px-3 py-3">
           <span className="text-sm text-ink">Repetir todo mês</span>
           <Toggle
@@ -244,6 +237,12 @@ export function ProductDialog({
             }}
           />
         </div>
+          </>
+        ) : (
+          <button type="button" className="text-left text-sm font-medium text-terra-deep" onClick={() => setDetails(true)}>
+            Ajustar categoria e unidade
+          </button>
+        )}
         {!product ? (
           <div className="flex items-center justify-between gap-3 rounded-2xl bg-sunken px-3 py-3">
             <span className="text-sm text-ink">Incluir na lista deste mês</span>
@@ -254,6 +253,54 @@ export function ProductDialog({
           Salvar
         </Button>
       </form>
+    </Modal>
+  );
+}
+
+export function ProductHistoryDialog({ product, onOpenChange }: { product: Product | null; onOpenChange: (open: boolean) => void }) {
+  const lines = useCasa((state) => state.lines);
+  const history = product ? productHistory(lines, product.id) : [];
+  const months = new Map<string, { qty: number; total: number }>();
+  for (const line of history) {
+    const current = months.get(line.monthKey) ?? { qty: 0, total: 0 };
+    current.qty += line.qtyBought;
+    current.total += line.actualTotal ?? 0;
+    months.set(line.monthKey, current);
+  }
+  const rows = [...months.entries()];
+  const spent = rows.reduce((sum, [, row]) => sum + row.total, 0);
+  const units = history.flatMap((line) => (line.qtyBought > 0 && line.actualTotal != null ? [line.actualTotal / line.qtyBought] : []));
+  const average = units.length ? units.reduce((sum, price) => sum + price, 0) / units.length : 0;
+  const last = units[0] ?? 0;
+
+  return (
+    <Modal open={Boolean(product)} onOpenChange={onOpenChange} title={product?.name ?? "Produto"} description="Preço e gasto mês a mês. A nota atualiza isso sozinha.">
+      {product ? (
+        <div className="flex flex-col gap-3">
+          <p className="text-sm text-muted">
+            {units.length ? `Último ${formatMoney(last)} · média ${formatMoney(average)} · ${formatMoney(spent)} no total` : "Ainda sem compra."}
+            {coverageText(product) ? ` · ${coverageText(product).toLowerCase()}` : " · a duração aparece quando você marcar que acabou"}
+          </p>
+          {rows.length === 0 ? (
+            <p className="text-sm text-muted">Quando a nota tiver este produto, o valor de cada mês entra aqui.</p>
+          ) : (
+            <ul className="flex flex-col divide-y divide-line">
+              {rows.map(([month, row]) => (
+                <li key={month} className="flex items-baseline justify-between gap-3 py-3">
+                  <span>
+                    <span className="block font-medium text-ink">{monthTitle(month)}</span>
+                    <span className="block text-sm text-muted">
+                      {formatQty(row.qty)} {product.unit}
+                      {row.qty > 0 ? ` · ${formatMoney(row.total / row.qty)} cada` : ""}
+                    </span>
+                  </span>
+                  <span className="shrink-0 tabular-nums text-ink">{formatMoney(row.total)}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      ) : null}
     </Modal>
   );
 }
@@ -419,8 +466,8 @@ export function PlanDialog({ line, onOpenChange }: { line: ShopLine | null; onOp
   function save() {
     if (!line) return;
     const qtyPlanned = parseDecimal(qty);
-    const estimatedUnitPrice = parseDecimal(price);
-    if (qtyPlanned == null || qtyPlanned <= 0 || estimatedUnitPrice == null || estimatedUnitPrice <= 0) {
+    const estimatedUnitPrice = price.trim() === "" ? 0 : parseDecimal(price);
+    if (qtyPlanned == null || qtyPlanned <= 0 || estimatedUnitPrice == null || estimatedUnitPrice < 0) {
       setError("Quantidade e preço precisam ser válidos.");
       return;
     }

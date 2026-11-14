@@ -3,7 +3,7 @@ import { toast } from "sonner";
 import { Plus } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Reveal } from "@/components/casa/chrome";
-import { ProductDialog } from "@/components/casa/dialogs";
+import { ProductDialog, ProductHistoryDialog } from "@/components/casa/dialogs";
 import { CategoryGlyph } from "@/components/casa/icons";
 import { Button, Card, EmptyState, Modal, PageSkeleton, fieldClass } from "@/components/ui/controls";
 import { formatMoney, formatQty, parseDecimal } from "@/lib/casa/format";
@@ -41,7 +41,7 @@ function Catalog() {
   const [leftover, setLeftover] = useState<Product | null>(null);
   const [leftQty, setLeftQty] = useState("");
   const [drop, setDrop] = useState<Product | null>(null);
-  const [openHistory, setOpenHistory] = useState<string | null>(null);
+  const [openHistory, setOpenHistory] = useState<Product | null>(null);
 
   const visible = useMemo(
     () =>
@@ -99,10 +99,10 @@ function Catalog() {
                   <span className="grid size-11 place-items-center rounded-2xl bg-sunken text-ink">
                     <CategoryGlyph name={category?.icon ?? "basket"} className="size-5" />
                   </span>
-                  <div className="min-w-0 flex-1">
+                  <button type="button" className="min-w-0 flex-1 text-left" onClick={() => setOpenHistory(product)}>
                     <h2 className="truncate font-display text-2xl text-ink">{product.name}</h2>
                     <p className="text-sm text-muted">{category?.name} · {product.unit}</p>
-                  </div>
+                  </button>
                 </div>
                 <p className="mt-3 text-sm text-muted">
                   Último {last?.actualTotal != null && last.qtyBought > 0 ? formatMoney(last.actualTotal / last.qtyBought) : "—"}
@@ -140,34 +140,19 @@ function Catalog() {
                   <Button size="lg" variant="secondary" onClick={() => setEditing(product)}>
                     Editar
                   </Button>
-                  <Button size="lg" variant="ghost" onClick={() => setOpenHistory(openHistory === product.id ? null : product.id)}>
+                  <Button size="lg" variant="secondary" onClick={() => setOpenHistory(product)}>
                     Preços
                   </Button>
                   <Button size="lg" variant="ghost" aria-label={`Tirar ${product.name} do catálogo`} onClick={() => setDrop(product)}>
                     Tirar do catálogo
                   </Button>
                 </div>
-                {openHistory === product.id ? (
-                  history.length === 0 ? (
-                    <p className="mt-3 text-sm text-muted">Ainda sem compra registrada.</p>
-                  ) : (
-                    <ul className="mt-3 flex flex-col gap-1 text-sm">
-                      {history.slice(0, 6).map((line) => (
-                        <li key={line.id} className="flex justify-between gap-3 text-muted">
-                          <span>{line.monthKey}</span>
-                          <span className="tabular-nums text-ink">
-                            {formatQty(line.qtyBought)} · {formatMoney(line.actualTotal ?? 0)}
-                          </span>
-                        </li>
-                      ))}
-                    </ul>
-                  )
-                ) : null}
               </Card>
             );
           })}
         </div>
       )}
+      <ProductHistoryDialog product={openHistory} onOpenChange={(open) => !open && setOpenHistory(null)} />
       <ProductDialog open={creating || Boolean(editing)} product={editing} onOpenChange={(open) => {
         if (!open) {
           setCreating(false);
