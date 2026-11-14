@@ -20,7 +20,7 @@ export function Reveal({ children }: { children: ReactNode }) {
   );
 }
 
-export function MonthSwitcher({ className }: { className?: string }) {
+export function MonthSwitcher({ className, titleClassName }: { className?: string; titleClassName?: string }) {
   const { viewMonth, previous, next } = useMonthShift();
   if (!viewMonth) return null;
   return (
@@ -28,7 +28,7 @@ export function MonthSwitcher({ className }: { className?: string }) {
       <Button variant="ghost" size="icon" aria-label="Mês anterior" onClick={previous}>
         <ChevronLeft className="size-5" />
       </Button>
-      <p className="min-w-40 text-center font-display text-lg text-ink">{monthTitle(viewMonth)}</p>
+      <p className={cn("text-center font-display text-lg text-ink", titleClassName ?? "min-w-40")}>{monthTitle(viewMonth)}</p>
       <Button variant="ghost" size="icon" aria-label="Próximo mês" onClick={next}>
         <ChevronRight className="size-5" />
       </Button>

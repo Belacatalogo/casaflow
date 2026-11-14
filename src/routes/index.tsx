@@ -45,148 +45,199 @@ function Dashboard() {
   const over = settings.monthlyBudget > 0 && totals.projected > settings.monthlyBudget;
   const progress = settings.monthlyBudget > 0 ? Math.min(100, (totals.actual / settings.monthlyBudget) * 100) : 0;
   const ticket = totals.boughtCount > 0 ? totals.actual / totals.boughtCount : 0;
+  const hasMonth = totals.count > 0 || totals.actual > 0;
+  const usefulInsights = insights.filter((insight) => insight.id !== "empty");
+  const percent = settings.monthlyBudget > 0 ? Math.round((totals.actual / settings.monthlyBudget) * 100) : null;
 
   return (
     <Reveal>
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <p className="text-sm text-muted">{greeting(now)}</p>
-          <h1 className="font-display text-4xl tracking-tight text-ink">{settings.householdName}</h1>
-        </div>
-        <MonthSwitcher />
-      </div>
-
-      <Card className="mt-6 bg-hero text-on-hero sm:p-6">
-        <div className="h-1 w-12 rounded-full bg-gold" />
-        <p className="mt-4 text-sm text-on-hero-muted">Já gastei em {monthTitle(viewMonth)}</p>
-        <p className="mt-1 font-display text-4xl tabular-nums sm:text-5xl">{formatMoney(totals.actual)}</p>
-        <p className="mt-2 text-sm text-on-hero-muted">
-          {settings.monthlyBudget > 0 ? `de ${formatMoney(settings.monthlyBudget)} neste mês` : "Sem limite definido"}
+      <header>
+        <p className="text-xs tracking-[0.16em] text-muted uppercase">{greeting(now)}</p>
+        <h1 className="mt-1 font-display text-[2rem] leading-none tracking-tight text-ink sm:text-5xl">{settings.householdName}</h1>
+        <p className="mt-2 text-sm text-muted">
+          {settings.people} {settings.people === 1 ? "pessoa" : "pessoas"} · só neste celular
         </p>
-        <div className="mt-5 h-2 overflow-hidden rounded-full bg-hero-track">
-          <div className={cn("h-full rounded-full", over ? "bg-terra" : "bg-gold")} style={{ width: `${progress}%` }} />
+        <div className="mt-4 rounded-full bg-sunken">
+          <MonthSwitcher className="w-full" titleClassName="min-w-0 flex-1 truncate px-1 text-base sm:text-lg" />
         </div>
-        <div className="mt-4 flex flex-wrap items-end justify-between gap-3">
-          <div>
-            <p className="text-xs uppercase tracking-wide text-on-hero-muted">Vai fechar em</p>
-            <p className="font-display text-2xl tabular-nums text-gold">{formatMoney(totals.projected)}</p>
+      </header>
+
+      {hasMonth ? <FilledMonth /> : <EmptyMonth />}
+    </Reveal>
+  );
+
+  function EmptyMonth() {
+    return (
+      <section className="mt-5 overflow-hidden rounded-[2rem] bg-hero px-5 py-6 text-on-hero sm:px-7 sm:py-8">
+        <div className="h-1 w-10 rounded-full bg-gold" />
+        <h2 className="mt-5 font-display text-3xl tracking-tight">{monthTitle(viewMonth)} ainda está vazio</h2>
+        <p className="mt-2 max-w-md text-pretty text-on-hero-muted">
+          {products.length === 0
+            ? "Cadastre o que a casa compra. A lista e o gráfico entram em seguida."
+            : "Monte a lista com o que se repete, ou acrescente um item."}
+        </p>
+        <div className="mt-6 flex flex-col gap-2 sm:flex-row">
+          {products.length === 0 ? (
+            <Button asChild className="bg-gold text-hero hover:bg-gold">
+              <Link to="/catalogo">Cadastrar produto</Link>
+            </Button>
+          ) : (
+            <Button asChild className="bg-gold text-hero hover:bg-gold">
+              <Link to="/lista">Montar a lista</Link>
+            </Button>
+          )}
+          {settings.monthlyBudget <= 0 ? (
+            <Button asChild className="bg-white/10 text-on-hero hover:bg-white/15">
+              <Link to="/ajustes">Definir limite</Link>
+            </Button>
+          ) : null}
+        </div>
+      </section>
+    );
+  }
+
+  function FilledMonth() {
+    return (
+      <>
+        <section className="relative mt-5 overflow-hidden rounded-[2rem] bg-hero px-5 py-5 text-on-hero sm:px-6 sm:py-6">
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-[linear-gradient(180deg,transparent,rgb(132_78_40/0.5))]" />
+          <div className="relative">
+            <p className="text-sm text-on-hero-muted">Já gastei em {monthTitle(viewMonth)}</p>
+            <p className="mt-2 font-display text-4xl leading-none tabular-nums tracking-tight sm:text-6xl">{formatMoney(totals.actual)}</p>
+            <p className="mt-3 text-sm text-on-hero-muted">
+              {settings.monthlyBudget > 0 ? `de ${formatMoney(settings.monthlyBudget)}` : "Sem limite definido"}
+              {percent != null ? <span className="text-gold"> · {percent}%</span> : null}
+            </p>
+            <div className="mt-4 h-1.5 overflow-hidden rounded-full bg-white/15">
+              <div className={cn("h-full rounded-full", over ? "bg-terra" : "bg-gold")} style={{ width: `${progress}%` }} />
+            </div>
+            <div className="mt-5 grid grid-cols-2 gap-3 border-t border-white/10 pt-4">
+              <div>
+                <p className="text-[11px] tracking-[0.14em] text-on-hero-muted uppercase">Vai fechar em</p>
+                <p className="mt-1 font-display text-2xl tabular-nums text-gold">{formatMoney(totals.projected)}</p>
+              </div>
+              <div>
+                <p className="text-[11px] tracking-[0.14em] text-on-hero-muted uppercase">
+                  {settings.monthlyBudget <= 0 ? "Limite" : over ? "Passa" : "Sobra"}
+                </p>
+                <p className="mt-1 font-display text-2xl tabular-nums">
+                  {settings.monthlyBudget <= 0 ? "—" : formatMoney(Math.abs(settings.monthlyBudget - totals.projected))}
+                </p>
+              </div>
+            </div>
+            <div className="mt-5 flex flex-col gap-2 sm:flex-row">
+              {totals.pendingCount > 0 ? (
+                <Button asChild className="bg-gold text-hero hover:bg-gold">
+                  <Link to="/comprando">Ir comprar · {totals.pendingCount}</Link>
+                </Button>
+              ) : null}
+              {settings.monthlyBudget <= 0 ? (
+                <Button asChild className="bg-white/10 text-on-hero hover:bg-white/15">
+                  <Link to="/ajustes">Definir limite</Link>
+                </Button>
+              ) : null}
+            </div>
           </div>
-          <p className="max-w-xs text-sm text-pretty text-on-hero-muted">
-            {settings.monthlyBudget <= 0
-              ? "Defina um limite em Ajustes."
-              : over
-                ? `Passa ${formatMoney(totals.projected - settings.monthlyBudget)} do limite.`
-                : `Sobra ${formatMoney(settings.monthlyBudget - totals.projected)}.`}
-          </p>
-        </div>
-        {totals.pendingCount > 0 ? (
-          <Button asChild variant="secondary" className="mt-5 bg-gold text-hero hover:bg-gold">
-            <Link to="/comprando">Ir comprar · {totals.pendingCount}</Link>
-          </Button>
-        ) : null}
-      </Card>
+        </section>
 
-      <div className="mt-3 grid grid-cols-2 gap-3 lg:grid-cols-3">
-        <Card>
-          <p className="text-sm text-muted">Comprados</p>
-          <p className="mt-2 font-display text-3xl tabular-nums text-ink">
-            {totals.boughtCount}
-            <span className="text-lg text-muted">/{totals.count}</span>
-          </p>
-          <p className="mt-1 text-sm text-muted">da lista</p>
-        </Card>
-        <Card>
-          <p className="text-sm text-muted">Média por item</p>
-          <p className="mt-2 font-display text-3xl tabular-nums text-ink">{formatMoney(ticket)}</p>
-          <p className="mt-1 text-sm text-muted">nas compras feitas</p>
-        </Card>
-        <Card className="col-span-2 lg:col-span-1">
-          <p className="text-sm text-muted">{totals.savedVsEstimate >= 0 ? "Economizei" : "Paguei a mais"}</p>
-          <p className="mt-2 font-display text-3xl tabular-nums text-ink">{formatMoney(Math.abs(totals.savedVsEstimate))}</p>
-          <p className="mt-1 text-sm text-muted">em relação ao previsto</p>
-        </Card>
-      </div>
-
-      <Card className="mt-3">
-        <div className="flex items-baseline justify-between gap-3">
-          <h2 className="font-display text-2xl text-ink">Gasto do mês</h2>
-          <p className="text-sm text-muted">A linha dourada é o limite</p>
+        <div className="mt-3 divide-y divide-line overflow-hidden rounded-[2rem] border border-line bg-surface shadow-card sm:grid sm:grid-cols-3 sm:divide-x sm:divide-y-0">
+          <Stat label="Comprados" value={`${totals.boughtCount}/${totals.count}`} />
+          <Stat label="Média" value={totals.boughtCount > 0 ? formatMoney(ticket) : "—"} />
+          <Stat label={totals.savedVsEstimate >= 0 ? "Economizei" : "A mais"} value={formatMoney(Math.abs(totals.savedVsEstimate))} />
         </div>
-        {totals.actual === 0 && totals.pendingCount === 0 ? (
-          <p className="mt-6 text-muted">O gráfico aparece quando você registra uma compra.</p>
-        ) : (
-          <div className="mt-4">
+
+        <Card className="mt-3 rounded-[2rem]">
+          <div className="flex items-baseline justify-between gap-3">
+            <h2 className="font-display text-2xl text-ink">Gasto do mês</h2>
+            <p className="text-sm text-muted">Dourado: limite</p>
+          </div>
+          <div className="mt-2">
             <PaceChart points={points} />
           </div>
-        )}
-      </Card>
-
-      <div className="mt-3 grid gap-3 lg:grid-cols-2">
-        <div className="flex flex-col gap-3">
-          {insights.map((insight) => (
-            <Card key={insight.id}>
-              <div className="flex gap-3">
-                <span className={cn("mt-1", insight.tone === "warn" ? "text-terra" : insight.tone === "good" ? "text-gold-deep" : "text-muted")}>
-                  {insight.tone === "good" ? <Sparkles className="size-5" /> : insight.tone === "warn" ? <TriangleAlert className="size-5" /> : <Info className="size-5" />}
-                </span>
-                <div>
-                  <h3 className="font-medium text-ink">{insight.title}</h3>
-                  <p className="mt-1 text-sm text-pretty text-muted">{insight.detail}</p>
-                  {insight.productId ? (
-                    <button
-                      type="button"
-                      className="mt-3 text-sm font-medium text-terra-deep"
-                      onClick={() => {
-                        const product = products.find((item) => item.id === insight.productId);
-                        const added = addProductToMonth(insight.productId!);
-                        if (added && product) toast.success(`${product.name} entrou na lista.`);
-                      }}
-                    >
-                      Incluir na lista
-                    </button>
-                  ) : null}
-                </div>
-              </div>
-            </Card>
-          ))}
-        </div>
-        <Card>
-          <h2 className="font-display text-2xl text-ink">Por categoria</h2>
-          <p className="mt-1 text-sm text-muted">Laranja: já pago. Dourado: ainda na lista.</p>
-          {slices.length === 0 ? (
-            <p className="mt-6 text-muted">Sem itens neste mês.</p>
-          ) : (
-            <ul className="mt-5 flex flex-col gap-4">
-              {slices.map((slice) => (
-                <li key={slice.categoryId}>
-                  <div className="flex items-baseline justify-between gap-3 text-sm">
-                    <span className="text-ink">{slice.name}</span>
-                    <span className="tabular-nums text-muted">{formatMoney(slice.actual + slice.pending)}</span>
-                  </div>
-                  <div className="mt-2 flex h-2 overflow-hidden rounded-full bg-sunken">
-                    <div className="h-full bg-terra" style={{ width: `${(slice.actual / maxSlice) * 100}%` }} />
-                    <div className="h-full bg-gold" style={{ width: `${(slice.pending / maxSlice) * 100}%` }} />
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )}
-          {totals.count === 0 ? (
-            products.length === 0 ? (
-              <Button asChild className="mt-5">
-                <Link to="/catalogo">Cadastrar produto</Link>
-              </Button>
-            ) : (
-              <Button asChild className="mt-5">
-                <Link to="/lista">Montar a lista</Link>
-              </Button>
-            )
-          ) : null}
         </Card>
-      </div>
-      <p className="mt-6 text-sm text-muted">
-        {settings.people} {settings.people === 1 ? "pessoa" : "pessoas"}. Os dados ficam só neste celular.
-      </p>
-    </Reveal>
+
+        <div className="mt-3 grid gap-3 lg:grid-cols-2">
+          <div className="flex flex-col gap-3">
+            {usefulInsights.length === 0 ? (
+              <Card className="rounded-[2rem]">
+                <p className="text-sm text-muted">Sem avisos neste mês.</p>
+              </Card>
+            ) : (
+              usefulInsights.map((insight) => (
+                <Card key={insight.id} className="rounded-[2rem]">
+                  <div className="flex gap-3">
+                    <span
+                      className={cn(
+                        "grid size-10 shrink-0 place-items-center rounded-full",
+                        insight.tone === "warn" ? "bg-terra-soft text-terra-deep" : insight.tone === "good" ? "bg-gold-soft text-gold-deep" : "bg-sunken text-muted",
+                      )}
+                    >
+                      {insight.tone === "good" ? <Sparkles className="size-4" /> : insight.tone === "warn" ? <TriangleAlert className="size-4" /> : <Info className="size-4" />}
+                    </span>
+                    <div className="min-w-0">
+                      <h3 className="font-medium text-ink">{insight.title}</h3>
+                      <p className="mt-1 text-sm text-pretty text-muted">{insight.detail}</p>
+                      {insight.productId ? (
+                        <button
+                          type="button"
+                          className="mt-3 text-sm font-medium text-terra-deep"
+                          onClick={() => {
+                            const product = products.find((item) => item.id === insight.productId);
+                            const added = addProductToMonth(insight.productId!);
+                            if (added && product) toast.success(`${product.name} entrou na lista.`);
+                          }}
+                        >
+                          Incluir na lista
+                        </button>
+                      ) : null}
+                    </div>
+                  </div>
+                </Card>
+              ))
+            )}
+          </div>
+          <Card className="rounded-[2rem]">
+            <h2 className="font-display text-2xl text-ink">Por categoria</h2>
+            <p className="mt-2 flex items-center gap-3 text-sm text-muted">
+              <span className="inline-flex items-center gap-1.5">
+                <span className="size-2 rounded-full bg-terra" />
+                Pago
+              </span>
+              <span className="inline-flex items-center gap-1.5">
+                <span className="size-2 rounded-full bg-gold" />
+                Na lista
+              </span>
+            </p>
+            {slices.length === 0 ? (
+              <p className="mt-6 text-muted">Sem itens neste mês.</p>
+            ) : (
+              <ul className="mt-5 flex flex-col gap-4">
+                {slices.map((slice) => (
+                  <li key={slice.categoryId}>
+                    <div className="flex items-baseline justify-between gap-3 text-sm">
+                      <span className="text-ink">{slice.name}</span>
+                      <span className="tabular-nums text-muted">{formatMoney(slice.actual + slice.pending)}</span>
+                    </div>
+                    <div className="mt-2 flex h-2 overflow-hidden rounded-full bg-sunken">
+                      <div className="h-full bg-terra" style={{ width: `${(slice.actual / maxSlice) * 100}%` }} />
+                      <div className="h-full bg-gold" style={{ width: `${(slice.pending / maxSlice) * 100}%` }} />
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </Card>
+        </div>
+      </>
+    );
+  }
+}
+
+function Stat({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-baseline justify-between gap-3 px-4 py-3.5 sm:block sm:px-5 sm:py-4">
+      <p className="text-sm text-muted">{label}</p>
+      <p className="font-display text-2xl tabular-nums text-ink">{value}</p>
+    </div>
   );
 }
