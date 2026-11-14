@@ -85,6 +85,10 @@ export function applyPantryChange(
   let lines = snapshot.lines;
   if (kind === "finished" && !lines.some((line) => line.productId === productId && line.monthKey === month && line.status === "pending")) {
     const current = products.find((item) => item.id === productId) ?? product;
+    const lastPaid = [...lines]
+      .reverse()
+      .find((line) => line.productId === productId && line.status === "bought" && line.qtyBought > 0 && (line.actualTotal ?? 0) > 0);
+    const lastPrice = lastPaid?.actualTotal ? Math.round((lastPaid.actualTotal / lastPaid.qtyBought) * 100) / 100 : 0;
     const line: ShopLine = {
       id: crypto.randomUUID(),
       monthKey: month || currentMonthKey(now),
@@ -93,7 +97,7 @@ export function applyPantryChange(
       name: current.name,
       unit: current.unit,
       qtyPlanned: current.defaultQty || 1,
-      estimatedUnitPrice: current.estimatedUnitPrice,
+      estimatedUnitPrice: lastPrice || current.estimatedUnitPrice,
       qtyBought: 0,
       actualTotal: null,
       status: "pending",

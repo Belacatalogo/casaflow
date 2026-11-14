@@ -33,14 +33,14 @@ export function adviseLine(line: ShopLine, product: Product | undefined, lines: 
   const usage = pastUse(line.productId, lines, now);
   const staple = Boolean(product?.recurring) || usage.monthsUsed >= 2;
   if (stock != null && stock > 10) {
-    return { show: false, qty: line.qtyPlanned, reason: `Ainda dura cerca de ${stock} dias.` };
+    return { show: false, qty: line.qtyPlanned, reason: "Ainda tem em casa." };
   }
   if (mode === "acabando") {
     if (stock != null && stock <= 10) {
       return {
         show: true,
         qty: line.qtyPlanned,
-        reason: stock < 0 ? "Pelo ritmo da casa, já acabou." : `Acaba em cerca de ${stock} dias.`,
+        reason: stock <= 0 ? "Acabou em casa." : `Acaba em cerca de ${stock} dias.`,
       };
     }
     if (staple) return { show: true, qty: line.qtyPlanned, reason: "Sem compra recente. Mantive na lista." };

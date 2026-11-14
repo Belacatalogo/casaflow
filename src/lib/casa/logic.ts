@@ -221,6 +221,11 @@ function daysBetween(later: Date, earlier: Date): number {
 }
 
 export function daysOfStock(product: Product, lines: ShopLine[], _people: number, now: Date): number | null {
+  if (product.onHand != null) {
+    if (product.onHand <= 0) return 0;
+    const perUnit = product.coverageDays > 0 ? product.coverageDays : 30;
+    return Math.round(product.onHand * perUnit);
+  }
   const last = lines
     .filter((line) => line.productId === product.id && line.status === "bought" && line.boughtAt)
     .sort((a, b) => (b.boughtAt ?? "").localeCompare(a.boughtAt ?? ""))[0];

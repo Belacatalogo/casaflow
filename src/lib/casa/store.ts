@@ -305,12 +305,15 @@ export const useCasa = create<CasaState>((set, get) => ({
     const product = get().products.find((item) => item.id === productId);
     const target = month ?? get().viewMonth;
     if (!product || !target) return false;
-    const pending = get().lines.some(
-      (line) => line.productId === productId && line.monthKey === target && line.status === "pending",
-    );
-    if (pending) {
+    const existing = get().lines.find((line) => line.productId === productId && line.monthKey === target);
+    if (existing?.status === "pending" || existing?.status === "bought") {
       toast("Esse item já está na lista.");
       return false;
+    }
+    if (existing?.status === "skipped") {
+      set({ lines: get().lines.map((line) => (line.id === existing.id ? { ...line, status: "pending" as const } : line)) });
+      persist(get);
+      return true;
     }
     const line = planLine(product, target, get().settings.people, get().lines);
     set({ lines: [...get().lines, line] });
@@ -328,6 +331,9 @@ export const useCasa = create<CasaState>((set, get) => ({
   markBought: (id, input) => {
     const when = new Date().toISOString();
     const line = get().lines.find((item) => item.id === id);
+    const already = line?.status === "bought" ? line.qtyBought : 0;
+    const delta = input.qtyBought - already;
+    const unitPrice = input.qtyBought > 0 ? round2(input.actualTotal / input.qtyBought) : 0;
     set({
       lines: get().lines.map((item) =>
         item.id === id
@@ -336,6 +342,7 @@ export const useCasa = create<CasaState>((set, get) => ({
               status: "bought",
               qtyBought: input.qtyBought,
               actualTotal: input.actualTotal,
+              estimatedUnitPrice: unitPrice || item.estimatedUnitPrice,
               store: input.store.trim(),
               boughtAt: item.boughtAt ?? when,
               offCard: input.offCard ? true : undefined,
@@ -345,7 +352,11 @@ export const useCasa = create<CasaState>((set, get) => ({
       products: line
         ? get().products.map((product) =>
             product.id === line.productId
-              ? { ...product, onHand: Math.round(((product.onHand ?? 0) + input.qtyBought) * 1000) / 1000 }
+              ? {
+                  ...product,
+                  onHand: Math.max(0, Math.round(((product.onHand ?? 0) + delta) * 1000) / 1000),
+                  estimatedUnitPrice: unitPrice || product.estimatedUnitPrice,
+                }
               : product,
           )
         : get().products,
@@ -355,15 +366,25 @@ export const useCasa = create<CasaState>((set, get) => ({
   },
 
   setStatus: (id, status) => {
+    const line = get().lines.find((item) => item.id === id);
+    const giveBack = status === "pending" && line?.status === "bought" ? line.qtyBought : 0;
     set({
-      lines: get().lines.map((line) => {
-        if (line.id !== id) return line;
+      lines: get().lines.map((item) => {
+        if (item.id !== id) return item;
         if (status === "pending") {
-          return { ...line, status, qtyBought: 0, actualTotal: null, boughtAt: null, store: "", offCard: undefined };
+          return { ...item, status, qtyBought: 0, actualTotal: null, boughtAt: null, store: "", offCard: undefined };
         }
-        if (status === "skipped") return { ...line, status };
-        return line;
+        if (status === "skipped") return { ...item, status };
+        return item;
       }),
+      products:
+        line && giveBack > 0
+          ? get().products.map((product) =>
+              product.id === line.productId
+                ? { ...product, onHand: Math.max(0, Math.round(((product.onHand ?? 0) - giveBack) * 1000) / 1000) }
+                : product,
+            )
+          : get().products,
     });
     persist(get);
     if (status === "pending") toast("Item voltou para a lista.");
@@ -371,7 +392,19 @@ export const useCasa = create<CasaState>((set, get) => ({
   },
 
   removeLine: (id) => {
-    set({ lines: get().lines.filter((line) => line.id !== id) });
+    const line = get().lines.find((item) => item.id === id);
+    const giveBack = line?.status === "bought" ? line.qtyBought : 0;
+    set({
+      lines: get().lines.filter((item) => item.id !== id),
+      products:
+        line && giveBack > 0
+          ? get().products.map((product) =>
+              product.id === line.productId
+                ? { ...product, onHand: Math.max(0, Math.round(((product.onHand ?? 0) - giveBack) * 1000) / 1000) }
+                : product,
+            )
+          : get().products,
+    });
     persist(get);
     toast.success("Item removido.");
   },

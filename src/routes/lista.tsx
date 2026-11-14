@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { toast } from "sonner";
 import { Check, Pencil, Plus, Search } from "lucide-react";
 import { useMemo, useState } from "react";
 import { MonthSwitcher, ModeSwitch, Reveal } from "@/components/casa/chrome";
@@ -35,6 +36,7 @@ function Lista() {
   const updateLine = useCasa((state) => state.updateLine);
   const setStatus = useCasa((state) => state.setStatus);
   const generateMonth = useCasa((state) => state.generateMonth);
+  const addProductToMonth = useCasa((state) => state.addProductToMonth);
   const [query, setQuery] = useState("");
   const [adding, setAdding] = useState(false);
   const [spent, setSpent] = useState(false);
@@ -63,6 +65,12 @@ function Lista() {
   const shown = active.filter((line) => line.status !== "pending" || adviceFor(line).show);
   const waiting = active.filter((line) => line.status === "pending" && !adviceFor(line).show);
   const hasRecurring = products.some((product) => product.recurring);
+  const known = useMemo(() => {
+    const text = query.trim().toLowerCase();
+    if (text.length < 2) return [];
+    const onList = new Set(lines.filter((line) => line.monthKey === viewMonth && line.status !== "skipped").map((line) => line.productId));
+    return products.filter((product) => product.name.toLowerCase().includes(text) && !onList.has(product.id)).slice(0, 5);
+  }, [query, products, lines, viewMonth]);
   const done = totals.count > 0 ? Math.round((totals.boughtCount / totals.count) * 100) : 0;
 
   return (
@@ -117,6 +125,30 @@ function Lista() {
           <Link to="/comprando">Modo compra</Link>
         </Button>
       </div>
+
+      {known.length > 0 ? (
+        <Card className="mt-3 rounded-[2rem]">
+          <h2 className="font-medium text-ink">Já existe</h2>
+          <ul className="mt-2">
+            {known.map((product) => (
+              <li key={product.id} className="flex items-center justify-between gap-3 border-t border-line py-2 first:border-t-0">
+                <span className="min-w-0">
+                  <span className="block truncate text-ink">{product.name}</span>
+                  <span className="block text-sm text-muted">{(product.onHand ?? 0) > 0 ? `${formatQty(product.onHand ?? 0)} ${product.unit} em casa` : "O mesmo produto"}</span>
+                </span>
+                <Button
+                  variant="secondary"
+                  onClick={() => {
+                    if (addProductToMonth(product.id)) toast.success(`${product.name} entrou na lista.`);
+                  }}
+                >
+                  Na lista
+                </Button>
+              </li>
+            ))}
+          </ul>
+        </Card>
+      ) : null}
 
       {shown.length === 0 && waiting.length === 0 ? (
         <div className="mt-5">
