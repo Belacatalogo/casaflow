@@ -8,6 +8,8 @@ export type Settings = {
   householdName: string;
   people: number;
   monthlyBudget: number;
+  /** Reais do vale por dia útil. O saldo do mês é esse valor vezes os dias úteis. */
+  mealDaily: number;
   theme: ThemeMode;
   listMode: ListMode;
 };
@@ -77,6 +79,7 @@ export const defaultSettings: Settings = {
   householdName: "Minha casa",
   people: 1,
   monthlyBudget: 0,
+  mealDaily: 30,
   theme: "system",
   listMode: "completa",
 };

@@ -1,4 +1,5 @@
 import { clamp } from "@/lib/casa/format";
+import { DEFAULT_MEAL_DAILY } from "./vale";
 import { listModeOf } from "@/lib/casa/modes";
 import type { Category, LineStatus, Product, Settings, ShopLine, Snapshot, StockEvent, Swatch, ThemeMode } from "@/lib/casa/types";
 
@@ -24,6 +25,7 @@ export function sanitizeSnapshot(raw: unknown): Snapshot | null {
     householdName: String(value.settings.householdName || "Minha casa").slice(0, 48),
     people: clamp(Math.round(num(value.settings.people, 1)), 1, 12),
     monthlyBudget: Math.max(0, num(value.settings.monthlyBudget, 0)),
+    mealDaily: clamp(num(value.settings.mealDaily, DEFAULT_MEAL_DAILY), 0, 500),
     theme: themeOf(value.settings.theme),
     listMode: listModeOf(value.settings.listMode),
   };

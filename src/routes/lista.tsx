@@ -11,6 +11,7 @@ import { lineActual, summarizeMonth } from "@/lib/casa/logic";
 import { adviseLine, linesForMode, missingLabel, pendingSummary } from "@/lib/casa/modes";
 import { coverageText } from "@/lib/casa/stock";
 import { useCasa } from "@/lib/casa/store";
+import { monthVale } from "@/lib/casa/vale";
 import type { ShopLine } from "@/lib/casa/types";
 import { cn } from "@/lib/utils";
 
@@ -45,7 +46,7 @@ function Lista() {
   const mode = settings.listMode ?? "completa";
   const scoped = useMemo(() => linesForMode(lines, products, mode, now), [lines, products, mode, now]);
   const summary = pendingSummary(lines, products, viewMonth, mode, now);
-  const totals = summarizeMonth(scoped, viewMonth, settings.monthlyBudget);
+  const totals = summarizeMonth(scoped, viewMonth, monthVale(settings.mealDaily ?? 30, viewMonth).total);
   const mine = useMemo(
     () =>
       lines

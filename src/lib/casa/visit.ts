@@ -62,6 +62,7 @@ export function visitSnapshot(now = new Date()): Snapshot {
       householdName: "Casa da visita",
       people: 2,
       monthlyBudget: 1500,
+      mealDaily: 30,
       theme: "system",
       listMode: "completa",
     },

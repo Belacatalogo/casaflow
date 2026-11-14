@@ -8,7 +8,8 @@ import { ICON_OPTIONS } from "@/components/casa/icons";
 import { SWATCHES } from "@/components/casa/dialogs";
 import { Button, Card, Field, Modal, PageSkeleton, fieldClass } from "@/components/ui/controls";
 import { sanitizeSnapshot } from "@/lib/casa/sanitize";
-import { decimalToInput, parseDecimal } from "@/lib/casa/format";
+import { decimalToInput, formatMoney, monthTitle, parseDecimal, shiftMonth, currentMonthKey } from "@/lib/casa/format";
+import { monthVale } from "@/lib/casa/vale";
 import { useCasa } from "@/lib/casa/store";
 import type { ListMode, Swatch, ThemeMode } from "@/lib/casa/types";
 import { cn } from "@/lib/utils";
@@ -47,7 +48,7 @@ function SettingsScreen() {
   const importSnapshot = useCasa((state) => state.importSnapshot);
   const homeCode = useCasa((state) => state.homeCode);
   const [name, setName] = useState(settings.householdName);
-  const [budget, setBudget] = useState(decimalToInput(settings.monthlyBudget));
+  const [daily, setDaily] = useState(decimalToInput(settings.mealDaily ?? 30));
   const [categoryName, setCategoryName] = useState("");
   const [icon, setIcon] = useState("basket");
   const [swatch, setSwatch] = useState<Swatch>("terra");
@@ -56,8 +57,8 @@ function SettingsScreen() {
 
   useEffect(() => {
     setName(settings.householdName);
-    setBudget(decimalToInput(settings.monthlyBudget));
-  }, [settings.householdName, settings.monthlyBudget]);
+    setDaily(decimalToInput(settings.mealDaily ?? 30));
+  }, [settings.householdName, settings.mealDaily]);
 
   function exportData() {
     const state = useCasa.getState();
@@ -76,7 +77,7 @@ function SettingsScreen() {
 
   return (
     <Reveal>
-      <PageIntro eyebrow="Ajustes" title="A casa" lede="Limite do mês, pessoas e categorias. A casa fica na sua conta, no celular e no tablet." />
+      <PageIntro eyebrow="Ajustes" title="A casa" lede="O vale do mês, as pessoas e as categorias. A casa fica na sua conta, no celular e no tablet." />
       <Card className="mt-5">
         <div className="flex items-center justify-between gap-3">
           <div>
@@ -118,19 +119,33 @@ function SettingsScreen() {
               }}
             />
           </Field>
-          <Field label="Limite do mês" hint="Usado no início e no gráfico">
+          <Field label="Vale por dia útil" hint="Sábado, domingo e feriado de Goiânia não entram">
             <input
               className={fieldClass}
               inputMode="decimal"
-              value={budget}
-              onChange={(event) => setBudget(event.target.value)}
+              value={daily}
+              onChange={(event) => setDaily(event.target.value)}
               onBlur={() => {
-                const value = parseDecimal(budget);
-                if (value != null && value >= 0) updateSettings({ monthlyBudget: value });
+                const value = parseDecimal(daily);
+                if (value != null && value >= 0) updateSettings({ mealDaily: value });
               }}
             />
           </Field>
         </div>
+        <ul className="mt-4 grid gap-2 text-sm text-muted sm:grid-cols-3">
+          {[0, 1, 2].map((offset) => {
+            const key = shiftMonth(currentMonthKey(), offset);
+            const vale = monthVale(settings.mealDaily ?? 30, key);
+            return (
+              <li key={key} className="rounded-2xl bg-sunken px-3 py-2">
+                <p className="font-medium text-ink">{monthTitle(key)}</p>
+                <p>
+                  {vale.days} dias úteis · {formatMoney(vale.total)}
+                </p>
+              </li>
+            );
+          })}
+        </ul>
         <div className="mt-4 flex items-center justify-between gap-3">
           <div>
             <p className="text-sm font-medium text-ink">Pessoas</p>
@@ -276,7 +291,7 @@ function SettingsScreen() {
         </div>
       </Card>
 
-      <Modal open={confirmReset} onOpenChange={setConfirmReset} title="Apagar produtos e compras?" description="A lista, os produtos e o histórico somem. Categorias, limite e tema continuam.">
+      <Modal open={confirmReset} onOpenChange={setConfirmReset} title="Apagar produtos e compras?" description="A lista, os produtos e o histórico somem. Categorias, vale e tema continuam.">
         <div className="flex flex-col gap-2">
           <Button
             onClick={() => {

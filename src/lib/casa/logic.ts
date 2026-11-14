@@ -258,14 +258,14 @@ export function buildInsights(input: {
     insights.push({
       id: "over",
       tone: "warn",
-      title: "A lista passa do limite",
+      title: "A lista passa do vale",
       detail: `Se comprar tudo, ${monthLabel(input.month)} fica em ${formatMoney(totals.projected)}. São ${formatMoney(totals.projected - input.budget)} a mais.`,
     });
   } else if (input.budget > 0 && totals.projected > 0) {
     insights.push({
       id: "fit",
       tone: "good",
-      title: isCurrent ? "Cabe no limite" : "Ficou dentro do limite",
+      title: isCurrent ? "Cabe no vale" : "Ficou dentro do vale",
       detail: `A previsão é ${formatMoney(totals.projected)}. Sobram ${formatMoney(input.budget - totals.projected)}.`,
     });
   }

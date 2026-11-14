@@ -7,6 +7,7 @@ import { Button, Card, PageSkeleton, fieldClass } from "@/components/ui/controls
 import { decimalToInput, formatMoney, formatQty, monthCount, monthTitle, parseDecimal, shiftMonth } from "@/lib/casa/format";
 import { consumptionRows, monthBars, summarizeMonth } from "@/lib/casa/logic";
 import { useCasa } from "@/lib/casa/store";
+import { monthVale } from "@/lib/casa/vale";
 
 export const Route = createFileRoute("/analises")({
   head: () => ({ meta: [{ title: "Análises · CasaFlow" }] }),
@@ -32,8 +33,8 @@ function Analytics() {
   const next = shiftMonth(viewMonth, 1);
   const rows = consumptionRows(products, lines, settings.people);
   const bars = monthBars(lines, viewMonth, 4);
-  const totals = summarizeMonth(lines, viewMonth, settings.monthlyBudget);
-  const previous = summarizeMonth(lines, shiftMonth(viewMonth, -1), settings.monthlyBudget);
+  const totals = summarizeMonth(lines, viewMonth, monthVale(settings.mealDaily ?? 30, viewMonth).total);
+  const previous = summarizeMonth(lines, shiftMonth(viewMonth, -1), monthVale(settings.mealDaily ?? 30, shiftMonth(viewMonth, -1)).total);
   const avg = bars.length ? bars.reduce((sum, bar) => sum + bar.realizado, 0) / bars.length : 0;
   const delta = previous.actual > 0 ? (totals.actual - previous.actual) / previous.actual : 0;
   const [draftKey, setDraftKey] = useState(next);

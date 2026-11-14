@@ -31,20 +31,20 @@ export function PaceChart({ points }: { points: PacePoint[] }) {
   const ticks = [1, 5, 10, 15, 20, 25, 30].filter((day) => day <= last);
   if (ticks[ticks.length - 1] !== last) ticks.push(last);
   return (
-    <div className="h-56 w-full min-w-0" role="img" aria-label="Gasto do mês comparado com o limite">
+    <div className="h-56 w-full min-w-0" role="img" aria-label="Gasto do mês comparado com o vale">
       <ResponsiveContainer width="100%" height="100%">
         <AreaChart data={points} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
           <CartesianGrid stroke="var(--line)" vertical={false} />
           <XAxis dataKey="day" ticks={ticks} tick={axis} axisLine={false} tickLine={false} />
           <YAxis hide />
           <Tooltip content={<Tip />} />
-          <Area type="monotone" dataKey="ritmo" name="Limite" stroke="var(--gold)" fill="transparent" strokeDasharray="4 4" dot={false} />
+          <Area type="monotone" dataKey="ritmo" name="Vale" stroke="var(--gold)" fill="transparent" strokeDasharray="4 4" dot={false} />
           <Area type="monotone" dataKey="realizado" name="Já pago" stroke="var(--terra)" fill="var(--terra-soft)" dot={false} connectNulls={false} />
         </AreaChart>
       </ResponsiveContainer>
       <div className="mt-2 flex gap-4 text-sm text-muted">
         <span className="inline-flex items-center gap-2"><span className="h-0.5 w-6 bg-terra" /> Já pago</span>
-        <span className="inline-flex items-center gap-2"><span className="h-0.5 w-6 border-t-2 border-dashed border-gold" /> Limite</span>
+        <span className="inline-flex items-center gap-2"><span className="h-0.5 w-6 border-t-2 border-dashed border-gold" /> Vale</span>
       </div>
     </div>
   );

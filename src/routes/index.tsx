@@ -8,6 +8,7 @@ import { Button, Card, PageSkeleton } from "@/components/ui/controls";
 import { formatMoney, greeting, monthTitle } from "@/lib/casa/format";
 import { buildInsights, categorySlices, paceSeries, summarizeMonth } from "@/lib/casa/logic";
 import { linesForMode, missingLabel, pendingSummary } from "@/lib/casa/modes";
+import { monthVale } from "@/lib/casa/vale";
 import { useCasa } from "@/lib/casa/store";
 import { cn } from "@/lib/utils";
 
@@ -31,26 +32,28 @@ function Dashboard() {
   const addProductToMonth = useCasa((state) => state.addProductToMonth);
   const now = useMemo(() => new Date(), []);
   const mode = settings.listMode ?? "completa";
+  const vale = monthVale(settings.mealDaily ?? 30, viewMonth);
+  const budget = vale.total;
   const scoped = useMemo(() => linesForMode(lines, products, mode, now), [lines, products, mode, now]);
-  const totals = summarizeMonth(scoped, viewMonth, settings.monthlyBudget);
-  const points = paceSeries(scoped, viewMonth, settings.monthlyBudget, now);
+  const totals = summarizeMonth(scoped, viewMonth, budget);
+  const points = paceSeries(scoped, viewMonth, budget, now);
   const slices = categorySlices(scoped, categories, viewMonth);
   const insights = buildInsights({
     lines: scoped,
     products,
     categories,
     month: viewMonth,
-    budget: settings.monthlyBudget,
+    budget,
     people: settings.people,
     now,
   });
   const maxSlice = Math.max(1, ...slices.map((slice) => slice.actual + slice.pending));
-  const over = settings.monthlyBudget > 0 && totals.projected > settings.monthlyBudget;
-  const progress = settings.monthlyBudget > 0 ? Math.min(100, (totals.actual / settings.monthlyBudget) * 100) : 0;
+  const over = budget > 0 && totals.projected > budget;
+  const progress = budget > 0 ? Math.min(100, (totals.actual / budget) * 100) : 0;
   const ticket = totals.boughtCount > 0 ? totals.actual / totals.boughtCount : 0;
   const hasMonth = totals.count > 0 || totals.actual > 0;
   const usefulInsights = insights.filter((insight) => insight.id !== "empty");
-  const percent = settings.monthlyBudget > 0 ? Math.round((totals.actual / settings.monthlyBudget) * 100) : null;
+  const percent = budget > 0 ? Math.round((totals.actual / budget) * 100) : null;
 
   return (
     <Reveal>
@@ -95,9 +98,9 @@ function Dashboard() {
               <Link to="/lista">Montar a lista</Link>
             </Button>
           )}
-          {settings.monthlyBudget <= 0 ? (
+          {budget <= 0 ? (
             <Button asChild className="bg-white/10 text-on-hero hover:bg-white/15">
-              <Link to="/ajustes">Definir limite</Link>
+              <Link to="/ajustes">Definir o vale</Link>
             </Button>
           ) : null}
         </div>
@@ -114,7 +117,7 @@ function Dashboard() {
             <p className="text-sm text-on-hero-muted">Já gastei em {monthTitle(viewMonth)}</p>
             <p className="mt-2 font-display text-4xl leading-none tabular-nums tracking-tight sm:text-6xl">{formatMoney(totals.actual)}</p>
             <p className="mt-3 text-sm text-on-hero-muted">
-              {settings.monthlyBudget > 0 ? `de ${formatMoney(settings.monthlyBudget)}` : "Sem limite definido"}
+              {budget > 0 ? `do vale de ${formatMoney(budget)} · ${vale.days} dias úteis` : "Sem vale definido"}
               {percent != null ? <span className="text-gold"> · {percent}%</span> : null}
             </p>
             <div className="mt-4 h-1.5 overflow-hidden rounded-full bg-white/15">
@@ -127,10 +130,10 @@ function Dashboard() {
               </div>
               <div>
                 <p className="text-[11px] tracking-[0.14em] text-on-hero-muted uppercase">
-                  {settings.monthlyBudget <= 0 ? "Limite" : over ? "Passa" : "Sobra"}
+                  {budget <= 0 ? "Saldo" : over ? "Passa" : "Saldo"}
                 </p>
                 <p className="mt-1 font-display text-2xl tabular-nums">
-                  {settings.monthlyBudget <= 0 ? "—" : formatMoney(Math.abs(settings.monthlyBudget - totals.projected))}
+                  {budget <= 0 ? "—" : formatMoney(Math.abs(budget - totals.projected))}
                 </p>
               </div>
             </div>
@@ -140,9 +143,9 @@ function Dashboard() {
                   <Link to="/comprando">Ir comprar · {totals.pendingCount}</Link>
                 </Button>
               ) : null}
-              {settings.monthlyBudget <= 0 ? (
+              {budget <= 0 ? (
                 <Button asChild className="bg-white/10 text-on-hero hover:bg-white/15">
-                  <Link to="/ajustes">Definir limite</Link>
+                  <Link to="/ajustes">Definir o vale</Link>
                 </Button>
               ) : null}
             </div>
@@ -158,7 +161,7 @@ function Dashboard() {
         <Card className="mt-3 rounded-[2rem]">
           <div className="flex items-baseline justify-between gap-3">
             <h2 className="font-display text-2xl text-ink">Gasto do mês</h2>
-            <p className="text-sm text-gold-deep">Linha dourada: limite do mês</p>
+            <p className="text-sm text-gold-deep">Linha dourada: vale do mês</p>
           </div>
           <div className="mt-2">
             <PaceChart points={points} />
