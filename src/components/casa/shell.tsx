@@ -158,7 +158,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         </ul>
       </nav>
 
-      <Modal open={more} onOpenChange={setMore} title="Mais" description="Catálogo, histórico e ajustes da casa.">
+      <Modal open={more} onOpenChange={setMore} title="Mais" description="Produtos, histórico e ajustes.">
         <div className="flex flex-col gap-2">
           {MORE.map((to) => {
             const item = NAV.find((entry) => entry.to === to)!;

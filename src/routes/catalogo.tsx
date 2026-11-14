@@ -50,8 +50,8 @@ function Catalog() {
     <Reveal>
       <PageIntro
         eyebrow="Catálogo"
-        title="O que a casa compra"
-        lede="Preço recente, consumo médio e a quantidade sugerida para durar o mês."
+        title="Produtos"
+        lede="O que a casa compra de novo. Daqui você manda o item para a lista."
         extra={
           <Button onClick={() => setCreating(true)}>
             <Plus className="size-4" />
@@ -75,7 +75,7 @@ function Catalog() {
 
       {visible.length === 0 ? (
         <div className="mt-5">
-          <EmptyState title="Catálogo vazio por aqui" detail="Cadastre um produto para passar a sugerir quantidade e preço." action={<Button onClick={() => setCreating(true)}>Cadastrar</Button>} />
+          <EmptyState title="Nenhum produto" detail="Cadastre o que a casa compra para sugerir quantidade e preço." action={<Button onClick={() => setCreating(true)}>Cadastrar</Button>} />
         </div>
       ) : (
         <div className="mt-5 grid gap-3 sm:grid-cols-2">
@@ -156,10 +156,10 @@ function Catalog() {
                   type="button"
                   className="mt-4 text-sm text-terra-deep"
                   onClick={() => {
-                    if (window.confirm("Remover do catálogo? O histórico de compras permanece.")) removeProduct(product.id);
+                    if (window.confirm("Tirar este produto? As compras já feitas continuam no histórico.")) removeProduct(product.id);
                   }}
                 >
-                  Remover do catálogo
+                  Tirar da lista de produtos
                 </button>
               </Card>
             );

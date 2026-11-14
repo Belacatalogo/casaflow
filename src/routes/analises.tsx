@@ -61,8 +61,8 @@ function Analytics() {
     <Reveal>
       <PageIntro
         eyebrow="Análises"
-        title="O que a casa consome"
-        lede="Médias reais, o que pesa no orçamento e uma lista sugerida para o mês que vem."
+        title="Resumo"
+        lede="O que a casa mais gasta e uma lista pronta para o mês que vem."
         extra={<MonthSwitcher />}
       />
 
@@ -72,22 +72,22 @@ function Analytics() {
           <p className="mt-2 font-display text-2xl tabular-nums">{formatMoney(avg)}</p>
         </Card>
         <Card>
-          <p className="text-sm text-muted">Este mês, realizado</p>
+          <p className="text-sm text-muted">Já gastei</p>
           <p className="mt-2 font-display text-2xl tabular-nums">{formatMoney(totals.actual)}</p>
         </Card>
         <Card>
-          <p className="text-sm text-muted">Vs. mês anterior</p>
+          <p className="text-sm text-muted">Contra o mês passado</p>
           <p className="mt-2 font-display text-2xl tabular-nums">{previous.actual > 0 ? `${delta > 0 ? "+" : ""}${Math.round(delta * 100)}%` : "—"}</p>
         </Card>
         <Card>
-          <p className="text-sm text-muted">Projeção atual</p>
+          <p className="text-sm text-muted">Previsão</p>
           <p className="mt-2 font-display text-2xl tabular-nums">{formatMoney(totals.projected)}</p>
         </Card>
       </div>
 
       <Card className="mt-3">
         <h2 className="font-display text-2xl text-ink">Mês a mês</h2>
-        <p className="mt-1 text-sm text-muted">Barras em terracota são o pago. Ouro inclui o que ainda está só estimado.</p>
+        <p className="mt-1 text-sm text-muted">Laranja é o que já pagou. Dourado soma o que ainda falta.</p>
         <div className="mt-4">
           <MonthChart rows={bars} />
         </div>
@@ -115,7 +115,7 @@ function Analytics() {
                   média {formatQty(row.avgQty)} {row.unit}
                   {row.months > 0 ? ` · ${row.months} meses` : ""}
                 </p>
-                <p className="tabular-nums text-ink sm:text-right">{row.avgSpend > 0 ? formatMoney(row.avgSpend) : "sem histórico"}</p>
+                <p className="tabular-nums text-ink sm:text-right">{row.avgSpend > 0 ? formatMoney(row.avgSpend) : "ainda sem compra"}</p>
               </li>
             );
           })}
@@ -125,8 +125,8 @@ function Analytics() {
       <Card className="mt-3">
         <h2 className="font-display text-2xl text-ink">Próximo mês</h2>
         <p className="mt-1 text-pretty text-muted">
-          Sugestão para {monthTitle(next)} a partir do consumo. Ajuste a quantidade antes de criar a lista.
-          {existing > 0 ? ` ${monthTitle(next)} já tem ${existing} itens; só entra o que ainda não está lá.` : ""}
+          Sugestão para {monthTitle(next)}. Mude a quantidade se quiser.
+          {existing > 0 ? ` O que já está na lista não entra de novo.` : ""}
         </p>
         <ul className="mt-4 flex flex-col gap-3">
           {planRows.map((draft) => {

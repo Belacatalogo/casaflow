@@ -259,8 +259,8 @@ export function buildInsights(input: {
       {
         id: "empty",
         tone: "neutral",
-        title: "O mês ainda está em branco",
-        detail: "Monte a lista com os produtos da casa. A projeção aparece assim que houver quantidade e preço.",
+        title: "O mês ainda está vazio",
+        detail: "Monte a lista com o que a casa costuma comprar.",
       },
     ];
   }
@@ -269,15 +269,15 @@ export function buildInsights(input: {
     insights.push({
       id: "over",
       tone: "warn",
-      title: "A projeção passa do orçamento",
-      detail: `Se a lista fechar como está, ${monthLabel(input.month)} fica em ${formatMoney(totals.projected)}, ${formatMoney(totals.projected - input.budget)} acima do teto.`,
+      title: "A lista passa do limite",
+      detail: `Se comprar tudo, ${monthLabel(input.month)} fica em ${formatMoney(totals.projected)}. São ${formatMoney(totals.projected - input.budget)} a mais.`,
     });
   } else if (input.budget > 0 && totals.projected > 0) {
     insights.push({
       id: "fit",
       tone: "good",
-      title: isCurrent ? "O mês cabe no orçamento" : "Mês dentro do teto",
-      detail: `A projeção fecha em ${formatMoney(totals.projected)}, com folga de ${formatMoney(input.budget - totals.projected)} sobre o teto de ${formatMoney(input.budget)}.`,
+      title: isCurrent ? "Cabe no limite" : "Ficou dentro do limite",
+      detail: `A previsão é ${formatMoney(totals.projected)}. Sobram ${formatMoney(input.budget - totals.projected)}.`,
     });
   }
 
@@ -289,8 +289,8 @@ export function buildInsights(input: {
       insights.push({
         id: "pace",
         tone: "warn",
-        title: "O realizado está à frente do calendário",
-        detail: `Dia ${day} de ${days} e já se foram ${formatMoney(totals.actual)}. O ritmo linear do orçamento hoje seria ${formatMoney(pace)}.`,
+        title: "Gastando rápido demais",
+        detail: `Dia ${day} de ${days} e já foram ${formatMoney(totals.actual)}. Nesse ritmo, o limite de hoje seria ${formatMoney(pace)}.`,
       });
     }
   }
@@ -302,7 +302,7 @@ export function buildInsights(input: {
       id: `pending-${pendingLeader.categoryId}`,
       tone: "neutral",
       title: `${pendingLeader.name} ainda está na lista`,
-      detail: `Faltam cerca de ${formatMoney(pendingLeader.pending)} estimados nessa categoria.`,
+      detail: `Ainda faltam cerca de ${formatMoney(pendingLeader.pending)} nessa categoria.`,
     });
   }
 
@@ -311,8 +311,8 @@ export function buildInsights(input: {
     insights.push({
       id: `share-${leader.categoryId}`,
       tone: "neutral",
-      title: `${leader.name} concentra o gasto`,
-      detail: `${Math.round(leader.share * 100)}% do que já foi pago neste mês passou por essa categoria.`,
+      title: `${leader.name} pesa mais`,
+      detail: `${Math.round(leader.share * 100)}% do que já foi pago foi para essa categoria.`,
     });
   }
 
@@ -336,12 +336,15 @@ export function buildInsights(input: {
     }
   }
   if (spike) {
+    const alreadyPending = input.lines.some(
+      (item) => item.productId === spike.productId && item.monthKey === input.month && item.status === "pending",
+    );
     insights.push({
       id: `spike-${spike.productId}`,
       tone: "warn",
-      title: `${spike.name} ficou mais caro`,
-      detail: `O preço deste mês está ${Math.round(spike.pct * 100)}% acima da última compra.`,
-      productId: spike.productId,
+      title: `${spike.name} subiu de preço`,
+      detail: `Está ${Math.round(spike.pct * 100)}% mais caro que da última vez.`,
+      productId: alreadyPending ? undefined : spike.productId,
     });
   }
 
@@ -358,11 +361,11 @@ export function buildInsights(input: {
       detail:
         left < 0
           ? pending
-            ? "Pelo ritmo recente, o estoque já virou. O item continua na lista."
-            : "Pelo ritmo recente, o estoque já virou. Vale incluir de novo na lista."
+            ? "Pelo ritmo da casa, já acabou. Continua na lista."
+            : "Pelo ritmo da casa, já acabou. Vale colocar de novo na lista."
           : pending
-            ? `Pelo consumo recente, dura cerca de ${left} dia${left === 1 ? "" : "s"}. Já está na lista.`
-            : `Pelo consumo recente, dura cerca de ${left} dia${left === 1 ? "" : "s"}.`,
+            ? `Deve durar mais ${left} dia${left === 1 ? "" : "s"}. Já está na lista.`
+            : `Deve durar mais ${left} dia${left === 1 ? "" : "s"}.`,
       productId: pending ? undefined : product.id,
     });
     break;

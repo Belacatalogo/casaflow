@@ -41,12 +41,12 @@ function Shop() {
       <p className="text-sm text-muted">{monthTitle(viewMonth)}</p>
       <h1 className="font-display text-4xl tracking-tight text-ink">Comprando agora</h1>
       <p className="mt-2 text-pretty text-muted">
-        {pending.length === 0 ? "A lista deste mês está em dia." : `${pending.length} itens ainda não passaram no caixa.`}
+        {pending.length === 0 ? "Nada pendente neste mês." : `${pending.length} ${pending.length === 1 ? "item falta" : "itens faltam"}.`}
       </p>
 
       {pending.length === 0 ? (
         <div className="mt-5">
-          <EmptyState title="Nada pendente" detail="Quando um item voltar para a lista, ele aparece aqui em letras grandes." />
+          <EmptyState title="Lista em dia" detail="Quando faltar algum item, ele aparece aqui." />
         </div>
       ) : (
         <div className="mt-5 flex flex-col gap-5">
@@ -61,7 +61,7 @@ function Shop() {
                     <article key={line.id} className="rounded-3xl border border-line bg-surface p-4 shadow-card">
                       <h3 className="font-display text-2xl text-ink">{line.name}</h3>
                       <p className="mt-1 text-muted">
-                        {formatQty(line.qtyPlanned)} {line.unit} · estimado {formatMoney(lineEstimate(line))}
+                        {formatQty(line.qtyPlanned)} {line.unit} · cerca de {formatMoney(lineEstimate(line))}
                       </p>
                       <div className="mt-4 grid grid-cols-2 gap-2">
                         <Button size="lg" onClick={() => setBuying(line)}>
@@ -81,7 +81,7 @@ function Shop() {
       )}
 
       <div className="sticky bottom-3 mt-6 rounded-3xl border border-line bg-hero px-4 py-4 text-on-hero shadow-card">
-        <p className="text-sm text-on-hero-muted">Já registrado neste mês</p>
+        <p className="text-sm text-on-hero-muted">Já gastei neste mês</p>
         <p className="font-display text-3xl tabular-nums">{formatMoney(totals.actual)}</p>
         <button type="button" className="mt-2 text-sm text-gold" onClick={() => setShowDone((value) => !value)}>
           {showDone ? "Esconder comprados" : `Ver ${bought.length} comprados`}

@@ -43,7 +43,7 @@ function Dashboard() {
   });
   const maxSlice = Math.max(1, ...slices.map((slice) => slice.actual + slice.pending));
   const over = settings.monthlyBudget > 0 && totals.projected > settings.monthlyBudget;
-  const progress = settings.monthlyBudget > 0 ? Math.min(100, (totals.projected / settings.monthlyBudget) * 100) : 0;
+  const progress = settings.monthlyBudget > 0 ? Math.min(100, (totals.actual / settings.monthlyBudget) * 100) : 0;
   const ticket = totals.boughtCount > 0 ? totals.actual / totals.boughtCount : 0;
 
   return (
@@ -58,62 +58,62 @@ function Dashboard() {
 
       <Card className="mt-6 bg-hero text-on-hero sm:p-6">
         <div className="h-1 w-12 rounded-full bg-gold" />
-        <p className="mt-4 text-sm text-on-hero-muted">Realizado em {monthTitle(viewMonth)}</p>
+        <p className="mt-4 text-sm text-on-hero-muted">Já gastei em {monthTitle(viewMonth)}</p>
         <p className="mt-1 font-display text-4xl tabular-nums sm:text-5xl">{formatMoney(totals.actual)}</p>
         <p className="mt-2 text-sm text-on-hero-muted">
-          {settings.monthlyBudget > 0 ? `de ${formatMoney(settings.monthlyBudget)} de orçamento` : "Sem teto definido"}
+          {settings.monthlyBudget > 0 ? `de ${formatMoney(settings.monthlyBudget)} neste mês` : "Sem limite definido"}
         </p>
         <div className="mt-5 h-2 overflow-hidden rounded-full bg-hero-track">
           <div className={cn("h-full rounded-full", over ? "bg-terra" : "bg-gold")} style={{ width: `${progress}%` }} />
         </div>
         <div className="mt-4 flex flex-wrap items-end justify-between gap-3">
           <div>
-            <p className="text-xs uppercase tracking-wide text-on-hero-muted">Projeção</p>
+            <p className="text-xs uppercase tracking-wide text-on-hero-muted">Vai fechar em</p>
             <p className="font-display text-2xl tabular-nums text-gold">{formatMoney(totals.projected)}</p>
           </div>
           <p className="max-w-xs text-sm text-pretty text-on-hero-muted">
             {settings.monthlyBudget <= 0
-              ? "Defina um orçamento para ver a folga do mês."
+              ? "Defina um limite em Ajustes."
               : over
-                ? `${formatMoney(totals.projected - settings.monthlyBudget)} acima do teto se a lista fechar assim.`
-                : `Folga de ${formatMoney(settings.monthlyBudget - totals.projected)} se nada mudar.`}
+                ? `Passa ${formatMoney(totals.projected - settings.monthlyBudget)} do limite.`
+                : `Sobra ${formatMoney(settings.monthlyBudget - totals.projected)}.`}
           </p>
         </div>
         {totals.pendingCount > 0 ? (
           <Button asChild variant="secondary" className="mt-5 bg-gold text-hero hover:bg-gold">
-            <Link to="/comprando">Comprando agora · {totals.pendingCount} itens</Link>
+            <Link to="/comprando">Ir comprar · {totals.pendingCount}</Link>
           </Button>
         ) : null}
       </Card>
 
       <div className="mt-3 grid grid-cols-2 gap-3 lg:grid-cols-3">
         <Card>
-          <p className="text-sm text-muted">Na lista</p>
+          <p className="text-sm text-muted">Comprados</p>
           <p className="mt-2 font-display text-3xl tabular-nums text-ink">
             {totals.boughtCount}
             <span className="text-lg text-muted">/{totals.count}</span>
           </p>
-          <p className="mt-1 text-sm text-muted">já comprados</p>
+          <p className="mt-1 text-sm text-muted">da lista</p>
         </Card>
         <Card>
-          <p className="text-sm text-muted">Ticket médio</p>
+          <p className="text-sm text-muted">Média por item</p>
           <p className="mt-2 font-display text-3xl tabular-nums text-ink">{formatMoney(ticket)}</p>
-          <p className="mt-1 text-sm text-muted">por item pago</p>
+          <p className="mt-1 text-sm text-muted">nas compras feitas</p>
         </Card>
         <Card className="col-span-2 lg:col-span-1">
-          <p className="text-sm text-muted">Contra o estimado</p>
+          <p className="text-sm text-muted">{totals.savedVsEstimate >= 0 ? "Economizei" : "Paguei a mais"}</p>
           <p className="mt-2 font-display text-3xl tabular-nums text-ink">{formatMoney(Math.abs(totals.savedVsEstimate))}</p>
-          <p className="mt-1 text-sm text-muted">{totals.savedVsEstimate >= 0 ? "abaixo do previsto" : "acima do previsto"}</p>
+          <p className="mt-1 text-sm text-muted">em relação ao previsto</p>
         </Card>
       </div>
 
       <Card className="mt-3">
         <div className="flex items-baseline justify-between gap-3">
-          <h2 className="font-display text-2xl text-ink">Ritmo do mês</h2>
-          <p className="text-sm text-muted">ouro é o orçamento linear</p>
+          <h2 className="font-display text-2xl text-ink">Gasto do mês</h2>
+          <p className="text-sm text-muted">A linha dourada é o limite</p>
         </div>
         {totals.actual === 0 && totals.pendingCount === 0 ? (
-          <p className="mt-6 text-muted">As compras aparecem aqui quando você registra o valor pago.</p>
+          <p className="mt-6 text-muted">O gráfico aparece quando você registra uma compra.</p>
         ) : (
           <div className="mt-4">
             <PaceChart points={points} />
@@ -152,7 +152,7 @@ function Dashboard() {
         </div>
         <Card>
           <h2 className="font-display text-2xl text-ink">Por categoria</h2>
-          <p className="mt-1 text-sm text-muted">Terracota é o pago. Ouro é o que ainda está na lista.</p>
+          <p className="mt-1 text-sm text-muted">Laranja: já pago. Dourado: ainda na lista.</p>
           {slices.length === 0 ? (
             <p className="mt-6 text-muted">Sem itens neste mês.</p>
           ) : (
@@ -179,7 +179,7 @@ function Dashboard() {
         </Card>
       </div>
       <p className="mt-6 text-sm text-muted">
-        {settings.people} {settings.people === 1 ? "pessoa" : "pessoas"} na casa. Os dados ficam neste aparelho.
+        {settings.people} {settings.people === 1 ? "pessoa" : "pessoas"}. Os dados ficam só neste celular.
       </p>
     </Reveal>
   );

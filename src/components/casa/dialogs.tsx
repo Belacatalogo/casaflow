@@ -123,7 +123,7 @@ export function ProductDialog({
       open={open}
       onOpenChange={onOpenChange}
       title={product ? "Editar produto" : "Novo produto"}
-      description="Nome, unidade e o quanto costuma durar. A sugestão de 30 dias usa esse ritmo."
+      description="Nome, unidade e quanto tempo uma unidade dura."
     >
       <form
         className="flex flex-col gap-4"
@@ -156,7 +156,7 @@ export function ProductDialog({
           <Field label="Preço estimado" error={errors.estimatedUnitPrice}>
             <input inputMode="decimal" className={fieldClass} value={draft.estimatedUnitPrice} onChange={(event) => setDraft({ ...draft, estimatedUnitPrice: event.target.value })} placeholder="0,00" />
           </Field>
-          <Field label="Dura quantos dias" error={errors.coverageDays} hint="Uma unidade, para 3 pessoas">
+          <Field label="Dura quantos dias" error={errors.coverageDays} hint="Uma unidade">
             <input inputMode="numeric" className={fieldClass} value={draft.coverageDays} onChange={(event) => setDraft({ ...draft, coverageDays: event.target.value })} />
           </Field>
         </div>
@@ -202,7 +202,7 @@ export function AddDialog({ open, onOpenChange }: { open: boolean; onOpenChange:
 
   return (
     <>
-      <Modal open={open && !creating} onOpenChange={onOpenChange} title="Adicionar à lista" description="Escolha do catálogo ou cadastre um produto novo.">
+      <Modal open={open && !creating} onOpenChange={onOpenChange} title="Adicionar à lista" description="Escolha um produto ou cadastre um novo.">
         <input className={fieldClass} placeholder="Buscar produto" value={query} onChange={(event) => setQuery(event.target.value)} />
         <ul className="mt-3 max-h-80 divide-y divide-line overflow-y-auto">
           {visible.map((product) => {
@@ -277,7 +277,7 @@ export function BuyDialog({ line, onOpenChange }: { line: ShopLine | null; onOpe
   }
 
   return (
-    <Modal open={Boolean(line)} onOpenChange={onOpenChange} title={line ? line.name : "Registrar compra"} description="Anote o que saiu do caixa, não só o preço de prateleira.">
+    <Modal open={Boolean(line)} onOpenChange={onOpenChange} title={line ? line.name : "Registrar compra"} description="Quanto você pagou?">
       {line ? (
         <form
           className="flex flex-col gap-4"
@@ -345,7 +345,7 @@ export function PlanDialog({ line, onOpenChange }: { line: ShopLine | null; onOp
   }
 
   return (
-    <Modal open={Boolean(line)} onOpenChange={onOpenChange} title={line?.name ?? "Editar item"} description="Ajuste o que pretende levar antes de passar no caixa.">
+    <Modal open={Boolean(line)} onOpenChange={onOpenChange} title={line?.name ?? "Editar item"} description="Ajuste a quantidade e o preço previsto.">
       {line ? (
         <form
           className="flex flex-col gap-4"
@@ -358,7 +358,7 @@ export function PlanDialog({ line, onOpenChange }: { line: ShopLine | null; onOp
             <Field label={`Quantidade (${line.unit})`}>
               <input inputMode="decimal" className={fieldClass} value={qty} onChange={(event) => setQty(event.target.value)} />
             </Field>
-            <Field label="Preço estimado da unidade">
+            <Field label="Preço de cada um">
               <input inputMode="decimal" className={fieldClass} value={price} onChange={(event) => setPrice(event.target.value)} />
             </Field>
           </div>

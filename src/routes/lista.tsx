@@ -48,9 +48,9 @@ function Lista() {
   return (
     <Reveal>
       <PageIntro
-        eyebrow="Lista mensal"
+        eyebrow="Lista"
         title={monthTitle(viewMonth)}
-        lede={`${totals.boughtCount} de ${totals.count} itens já saíram do caixa. Estimado ${formatMoney(totals.estimatedAll)}.`}
+        lede={`${totals.boughtCount} de ${totals.count} já comprados. Previsto: ${formatMoney(totals.estimatedAll)}.`}
         extra={<MonthSwitcher />}
       />
       <div className="mt-5 flex flex-col gap-3 sm:flex-row">
@@ -63,18 +63,18 @@ function Lista() {
           Adicionar
         </Button>
         <Button asChild variant="secondary">
-          <Link to="/comprando">Comprando agora</Link>
+          <Link to="/comprando">Modo compra</Link>
         </Button>
       </div>
 
       {mine.filter((line) => line.status !== "skipped").length === 0 ? (
         <div className="mt-5">
           <EmptyState
-            title={query ? "Nada com esse nome" : "Nada planejado neste mês"}
-            detail={query ? "Tente outro termo ou cadastre o produto." : "Traga os produtos recorrentes da casa ou escolha um a um no catálogo."}
+            title={query ? "Nada com esse nome" : "Lista vazia"}
+            detail={query ? "Tente outro nome ou cadastre o produto." : "Toque em montar a lista para trazer o que a casa compra todo mês."}
             action={
               query ? null : (
-                <Button onClick={() => generateMonth(viewMonth)}>Montar lista do mês</Button>
+                <Button onClick={() => generateMonth(viewMonth)}>Montar lista</Button>
               )
             }
           />

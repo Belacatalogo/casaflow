@@ -61,12 +61,12 @@ function SettingsScreen() {
     anchor.download = "casaflow.json";
     anchor.click();
     URL.revokeObjectURL(url);
-    toast.success("Arquivo baixado neste aparelho.");
+    toast.success("Cópia salva neste celular.");
   }
 
   return (
     <Reveal>
-      <PageIntro eyebrow="Ajustes" title="A casa" lede="Orçamento, pessoas, categorias e o tema. Nada disso sai do aparelho." />
+      <PageIntro eyebrow="Ajustes" title="A casa" lede="Limite do mês, pessoas e categorias. Tudo fica só neste celular." />
 
       <Card className="mt-5">
         <div className="grid gap-4 sm:grid-cols-2">
@@ -81,7 +81,7 @@ function SettingsScreen() {
               }}
             />
           </Field>
-          <Field label="Orçamento mensal" hint="Teto usado na projeção">
+          <Field label="Limite do mês" hint="Usado no início e no gráfico">
             <input
               className={fieldClass}
               inputMode="decimal"
@@ -97,7 +97,7 @@ function SettingsScreen() {
         <div className="mt-4 flex items-center justify-between gap-3">
           <div>
             <p className="text-sm font-medium text-ink">Pessoas</p>
-            <p className="text-sm text-muted">A sugestão de 30 dias escala com a casa.</p>
+            <p className="text-sm text-muted">Muda a quantidade sugerida.</p>
           </div>
           <div className="flex items-center gap-2">
             <Button variant="secondary" size="icon" aria-label="Menos uma pessoa" onClick={() => updateSettings({ people: settings.people - 1 })}>
@@ -144,7 +144,7 @@ function SettingsScreen() {
                     <button
                       key={tone}
                       type="button"
-                      aria-label={tone}
+                      aria-label={swatchLabel(tone)}
                       className={cn("size-7 rounded-full", swatchClass(tone), category.swatch === tone && "outline-2 outline-offset-2 outline-ink")}
                       onClick={() => updateCategory(category.id, { swatch: tone })}
                     />
@@ -182,14 +182,14 @@ function SettingsScreen() {
       </Card>
 
       <Card className="mt-3">
-        <h2 className="font-display text-2xl text-ink">Dados neste aparelho</h2>
-        <p className="mt-1 text-pretty text-muted">A lista, o catálogo e o histórico ficam no IndexedDB. Tema e orçamento também têm cópia local para abrir no tom certo.</p>
+        <h2 className="font-display text-2xl text-ink">Seus dados</h2>
+        <p className="mt-1 text-pretty text-muted">Ficam só neste celular. Salve uma cópia para não perder, ou traga a cópia de outro aparelho.</p>
         <div className="mt-4 flex flex-wrap gap-2">
           <Button variant="secondary" onClick={exportData}>
-            Exportar JSON
+            Salvar cópia
           </Button>
           <label className="inline-flex h-11 cursor-pointer items-center rounded-full bg-sunken px-4 text-sm font-medium text-ink">
-            Importar JSON
+            Trazer cópia
             <input
               type="file"
               accept="application/json"
@@ -220,7 +220,7 @@ function SettingsScreen() {
         </div>
       </Card>
 
-      <Modal open={confirmReset} onOpenChange={setConfirmReset} title="Restaurar o exemplo?" description="Isso substitui a lista, o catálogo e o histórico deste aparelho pelos dados de demonstração.">
+      <Modal open={confirmReset} onOpenChange={setConfirmReset} title="Voltar ao exemplo?" description="Apaga a lista, os produtos e o histórico deste celular e coloca a casa de demonstração.">
         <div className="flex flex-col gap-2">
           <Button
             onClick={() => {
@@ -237,6 +237,15 @@ function SettingsScreen() {
       </Modal>
     </Reveal>
   );
+}
+
+function swatchLabel(swatch: Swatch) {
+  if (swatch === "terra") return "Terracota";
+  if (swatch === "gold") return "Dourado";
+  if (swatch === "clay") return "Barro";
+  if (swatch === "sand") return "Areia";
+  if (swatch === "ink") return "Preto";
+  return "Marrom";
 }
 
 function swatchClass(swatch: Swatch) {

@@ -50,7 +50,7 @@ function History() {
 
   return (
     <Reveal>
-      <PageIntro eyebrow="Histórico" title="Tudo o que passou pelo caixa" lede="Filtre por mês, categoria ou status. Os valores pagos não mudam quando você edita o catálogo." />
+      <PageIntro eyebrow="Histórico" title="Compras feitas" lede="Busque por produto, mês ou loja. O valor pago não muda se você editar o produto." />
       <div className="mt-5 grid gap-3 sm:grid-cols-2">
         <input className={fieldClass} placeholder="Produto ou loja" value={query} onChange={(event) => setQuery(event.target.value)} />
         <select className={fieldClass} value={month} onChange={(event) => setMonth(event.target.value)}>

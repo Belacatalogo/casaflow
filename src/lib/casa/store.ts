@@ -102,7 +102,7 @@ export const useCasa = create<CasaState>((set, get) => ({
       });
     } catch {
       started = false;
-      set({ ready: false, error: "Não foi possível abrir os dados neste aparelho." });
+      set({ ready: false, error: "Não foi possível abrir os dados neste celular." });
     }
   },
 
@@ -201,7 +201,7 @@ export const useCasa = create<CasaState>((set, get) => ({
       (line) => line.productId === productId && line.monthKey === target && line.status === "pending",
     );
     if (pending) {
-      toast("Esse produto já está pendente na lista.");
+      toast("Esse item já está na lista.");
       return false;
     }
     const line = planLine(product, target, get().settings.people, get().lines);
@@ -250,7 +250,7 @@ export const useCasa = create<CasaState>((set, get) => ({
     });
     persist(get);
     if (status === "pending") toast("Item voltou para a lista.");
-    if (status === "skipped") toast("Item tirado desta lista.");
+    if (status === "skipped") toast("Item pulado.");
   },
 
   removeLine: (id) => {
@@ -312,7 +312,7 @@ export const useCasa = create<CasaState>((set, get) => ({
     set({ ...snapshot, ready: true, error: null });
     applyTheme(snapshot.settings.theme);
     commitSnapshot(snapshot);
-    toast.success("Dados importados neste aparelho.");
+    toast.success("Dados trazidos para este celular.");
   },
 }));
 

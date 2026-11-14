@@ -16,7 +16,7 @@ export const Route = createRootRoute({
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
       { title: APP_NAME },
-      { name: "description", content: "Organizador mensal de compras da casa: lista, preços reais, histórico e projeção." },
+      { name: "description", content: "Lista de compras da casa, com preços pagos, histórico e previsão do mês." },
       { name: "theme-color", content: "#FAF8F5" },
       { name: "apple-mobile-web-app-title", content: APP_NAME },
     ],
