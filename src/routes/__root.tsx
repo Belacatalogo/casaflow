@@ -14,10 +14,14 @@ export const Route = createRootRoute({
   head: () => ({
     meta: [
       { charSet: "utf-8" },
-      { name: "viewport", content: "width=device-width, initial-scale=1" },
+      { name: "viewport", content: "width=device-width, initial-scale=1, viewport-fit=cover" },
       { title: APP_NAME },
       { name: "description", content: "Lista de compras da casa, com preços pagos, histórico e previsão do mês." },
-      { name: "theme-color", content: "#FAF8F5" },
+      { name: "theme-color", content: "#faf8f5", media: "(prefers-color-scheme: light)" },
+      { name: "theme-color", content: "#1c1916", media: "(prefers-color-scheme: dark)" },
+      { name: "mobile-web-app-capable", content: "yes" },
+      { name: "apple-mobile-web-app-capable", content: "yes" },
+      { name: "apple-mobile-web-app-status-bar-style", content: "black-translucent" },
       { name: "apple-mobile-web-app-title", content: APP_NAME },
     ],
     links: [

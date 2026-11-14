@@ -5,6 +5,7 @@ import {
   ChevronRight,
   History,
   LayoutDashboard,
+  Menu,
   Moon,
   Package,
   Search,
@@ -28,6 +29,13 @@ const NAV = [
   { to: "/analises", label: "Análises", icon: ChartColumn, group: "Registros" },
   { to: "/historico", label: "Histórico", icon: History, group: "Registros" },
   { to: "/ajustes", label: "Ajustes", icon: Settings, group: "Registros" },
+] as const;
+
+const PHONE = [
+  { to: "/", label: "Início", icon: LayoutDashboard },
+  { to: "/lista", label: "Lista", icon: ShoppingBasket },
+  { to: "/comprando", label: "Comprar", icon: Store },
+  { to: "/catalogo", label: "Itens", icon: Package },
 ] as const;
 
 function active(pathname: string, to: string) {
@@ -269,8 +277,35 @@ export function AppShell({ children }: { children: ReactNode }) {
         </div>
       </aside>
 
+      <nav className="phone-dock" aria-label="Principal">
+        {PHONE.map((item) => {
+          const Icon = item.icon;
+          const on = active(pathname, item.to);
+          return (
+            <Link
+              key={item.to}
+              to={item.to}
+              aria-current={on ? "page" : undefined}
+              className={cn("flex min-w-0 flex-1 flex-col items-center gap-0.5 rounded-2xl py-1.5 text-[10px] font-medium", on ? "bg-black/25 text-white" : "text-white/75")}
+            >
+              <Icon className="size-5" />
+              <span className="truncate">{item.label}</span>
+            </Link>
+          );
+        })}
+        <button
+          type="button"
+          onClick={expand}
+          className="flex min-w-0 flex-1 flex-col items-center gap-0.5 rounded-2xl py-1.5 text-[10px] font-medium text-white/75"
+        >
+          <Menu className="size-5" />
+          <span>Mais</span>
+        </button>
+      </nav>
+
       <div className="shell-pad min-h-screen">
         <main className="mx-auto w-full max-w-5xl px-4 py-5 lg:px-8 lg:py-8">
+          <InstallHint />
           {visit ? (
             <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-sunken px-4 py-3 text-sm text-ink">
               <p>Visita liberada. Dá para abrir todas as abas. Nada é salvo.</p>
@@ -287,6 +322,36 @@ export function AppShell({ children }: { children: ReactNode }) {
           {children}
         </main>
       </div>
+    </div>
+  );
+}
+
+function InstallHint() {
+  const [show, setShow] = useState(false);
+  useEffect(() => {
+    const ios = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+    const standalone =
+      window.matchMedia("(display-mode: standalone)").matches ||
+      Boolean((navigator as Navigator & { standalone?: boolean }).standalone);
+    if (ios && !standalone && sessionStorage.getItem("casaflow-install") !== "1") setShow(true);
+  }, []);
+  if (!show) return null;
+  return (
+    <div className="mb-4 rounded-[1.5rem] bg-sunken px-4 py-3 text-sm">
+      <p className="font-medium text-ink">Colocar na tela inicial</p>
+      <p className="mt-1 text-pretty text-muted">
+        Abra casaflow-app.vercel.app no Safari. Toque em Compartilhar e depois em Adicionar à Tela de Início. O app abre sozinho, sem a barra do navegador.
+      </p>
+      <button
+        type="button"
+        className="mt-2 font-medium text-terra-deep"
+        onClick={() => {
+          sessionStorage.setItem("casaflow-install", "1");
+          setShow(false);
+        }}
+      >
+        Entendi
+      </button>
     </div>
   );
 }
