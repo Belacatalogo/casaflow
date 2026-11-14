@@ -28,7 +28,7 @@ export function monthVale(daily: number, monthKey: string): { days: number; dail
 
 export type ValeCredit = { on: string; forMonth: string; amount: number };
 
-export type CardLine = { status: string; boughtAt: string | null; actualTotal: number | null };
+export type CardLine = { status: string; boughtAt: string | null; actualTotal: number | null; offCard?: boolean };
 
 /** Last weekday that is not a Goiânia holiday, as YYYY-MM-DD. */
 export function lastBusinessDay(monthKey: string): string {
@@ -83,7 +83,7 @@ export function cardPosition(input: {
   const credited = roundMoney(credits.reduce((sum, credit) => sum + credit.amount, 0));
   const spent = roundMoney(
     input.lines.reduce((sum, line) => {
-      if (line.status !== "bought" || !line.boughtAt || line.boughtAt <= input.anchorAt!) return sum;
+      if (line.status !== "bought" || line.offCard || !line.boughtAt || line.boughtAt <= input.anchorAt!) return sum;
       return sum + (line.actualTotal ?? 0);
     }, 0),
   );

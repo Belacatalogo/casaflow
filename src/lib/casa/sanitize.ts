@@ -80,6 +80,7 @@ export function sanitizeSnapshot(raw: unknown): Snapshot | null {
         boughtAt: typeof line.boughtAt === "string" ? line.boughtAt : null,
         store: String(line.store ?? "").slice(0, 40),
         hold: line.hold === true ? true : undefined,
+        offCard: line.offCard === true ? true : undefined,
       };
     });
   const stock: StockEvent[] = Array.isArray(value.stock)

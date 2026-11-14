@@ -7,6 +7,7 @@ import type { ReceiptItem } from "@/lib/casa/receipt";
 import { useCasa } from "@/lib/casa/store";
 import { formatMoney, formatQty } from "@/lib/casa/format";
 import { Button, Modal, fieldClass } from "@/components/ui/controls";
+import { cn } from "@/lib/utils";
 
 export function ReceiptDialog({
   open,
@@ -25,6 +26,7 @@ export function ReceiptDialog({
   const [message, setMessage] = useState("");
   const [items, setItems] = useState<ReceiptItem[]>([]);
   const [store, setStore] = useState("");
+  const [offCard, setOffCard] = useState(false);
 
   useEffect(() => {
     if (!open) return;
@@ -33,6 +35,7 @@ export function ReceiptDialog({
     setMessage("");
     setItems([]);
     setStore("");
+    setOffCard(false);
   }, [open]);
 
   useEffect(() => {
@@ -79,6 +82,7 @@ export function ReceiptDialog({
       setItems(pasted);
       setStore("");
       setPhase("review");
+      setOffCard(false);
       return;
     }
     try {
@@ -92,6 +96,7 @@ export function ReceiptDialog({
         setItems(result.items);
         setStore(result.store);
         setPhase("review");
+      setOffCard(false);
         return;
       }
       setMessage(result.message);
@@ -103,7 +108,7 @@ export function ReceiptDialog({
   }
 
   function launch() {
-    const count = recordPurchases(items.map((item) => ({ ...item, store })));
+    const count = recordPurchases(items.map((item) => ({ ...item, store, offCard })));
     if (count > 0) onOpenChange(false);
   }
 
@@ -171,6 +176,17 @@ export function ReceiptDialog({
               );
             })}
           </ul>
+          <div>
+            <p className="text-sm font-medium text-ink">De onde saiu</p>
+            <div className="mt-2 grid grid-cols-2 gap-2">
+              <button type="button" className={cn("h-11 rounded-full text-sm font-medium", !offCard ? "bg-hero text-on-hero" : "bg-sunken text-ink")} onClick={() => setOffCard(false)}>
+                Cartão alimentação
+              </button>
+              <button type="button" className={cn("h-11 rounded-full text-sm font-medium", offCard ? "bg-hero text-on-hero" : "bg-sunken text-ink")} onClick={() => setOffCard(true)}>
+                Fora do cartão
+              </button>
+            </div>
+          </div>
           <Button size="lg" disabled={items.length === 0} onClick={launch}>
             Lançar compras
           </Button>

@@ -12,6 +12,30 @@ import { cn } from "@/lib/utils";
 
 const SWATCHES = ["terra", "gold", "clay", "sand", "ink", "bark"] as const;
 
+function PaySource({ offCard, onChange }: { offCard: boolean; onChange: (offCard: boolean) => void }) {
+  return (
+    <div>
+      <p className="text-sm font-medium text-ink">De onde saiu</p>
+      <div className="mt-2 grid grid-cols-2 gap-2">
+        <button
+          type="button"
+          className={cn("h-11 rounded-full text-sm font-medium", !offCard ? "bg-hero text-on-hero" : "bg-sunken text-ink")}
+          onClick={() => onChange(false)}
+        >
+          Cartão alimentação
+        </button>
+        <button
+          type="button"
+          className={cn("h-11 rounded-full text-sm font-medium", offCard ? "bg-hero text-on-hero" : "bg-sunken text-ink")}
+          onClick={() => onChange(true)}
+        >
+          Fora do cartão
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function Toggle({ on, label, onClick }: { on: boolean; label: string; onClick: () => void }) {
   return (
     <button
@@ -308,6 +332,7 @@ export function BuyDialog({ line, onOpenChange }: { line: ShopLine | null; onOpe
   const [qty, setQty] = useState("1");
   const [total, setTotal] = useState("");
   const [store, setStore] = useState("");
+  const [offCard, setOffCard] = useState(false);
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -315,6 +340,7 @@ export function BuyDialog({ line, onOpenChange }: { line: ShopLine | null; onOpe
     setQty(decimalToInput(line.qtyBought || line.qtyPlanned));
     setTotal(decimalToInput(line.actualTotal ?? lineEstimate(line)));
     setStore(line.store);
+    setOffCard(line.offCard === true);
     setError("");
   }, [line]);
 
@@ -330,7 +356,7 @@ export function BuyDialog({ line, onOpenChange }: { line: ShopLine | null; onOpe
       setError("Informe o valor pago.");
       return;
     }
-    markBought(line.id, { qtyBought, actualTotal, store });
+    markBought(line.id, { qtyBought, actualTotal, store, offCard });
     onOpenChange(false);
   }
 
@@ -358,6 +384,7 @@ export function BuyDialog({ line, onOpenChange }: { line: ShopLine | null; onOpe
           <Field label="Onde comprou" hint="Opcional">
             <input className={fieldClass} value={store} onChange={(event) => setStore(event.target.value)} placeholder="Mercado, feira, padaria" />
           </Field>
+          <PaySource offCard={offCard} onChange={setOffCard} />
           <div className="flex flex-wrap gap-2">
             {SUGGESTED_STORES.map((name) => (
               <button key={name} type="button" className={cn("h-9 rounded-full px-3 text-sm", store === name ? "bg-terra-soft text-terra-deep" : "bg-sunken text-ink")} onClick={() => setStore(name)}>
@@ -453,6 +480,7 @@ export function PurchaseDialog({
   const recordPurchases = useCasa((state) => state.recordPurchases);
   const [name, setName] = useState(initialName);
   const [total, setTotal] = useState("");
+  const [offCard, setOffCard] = useState(false);
   const [error, setError] = useState("");
   const guess = guessProduct(name);
   const category = categoryForGuess(categories, guess);
@@ -461,6 +489,7 @@ export function PurchaseDialog({
     if (!open) return;
     setName(initialName);
     setTotal("");
+    setOffCard(false);
     setError("");
   }, [open, initialName]);
 
@@ -474,7 +503,7 @@ export function PurchaseDialog({
       setError("Informe o valor pago.");
       return;
     }
-    recordPurchases([{ name, qty: 1, total: value, unit: guess?.unit }]);
+    recordPurchases([{ name, qty: 1, total: value, unit: guess?.unit, offCard }]);
     onOpenChange(false);
   }
 
@@ -499,6 +528,7 @@ export function PurchaseDialog({
         <Field label="Valor pago">
           <input inputMode="decimal" className={fieldClass} value={total} onChange={(event) => setTotal(event.target.value)} placeholder="0,00" />
         </Field>
+        <PaySource offCard={offCard} onChange={setOffCard} />
         {error ? <p className="text-sm text-terra-deep">{error}</p> : null}
         <Button type="submit" size="lg" className="w-full">
           Lançar

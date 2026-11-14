@@ -52,6 +52,7 @@ test("o saldo informado não conta compra antiga e recebe o crédito depois", ()
   const lines = [
     { status: "bought", boughtAt: new Date(2026, 10, 10, 12).toISOString(), actualTotal: 40 },
     { status: "bought", boughtAt: new Date(2026, 10, 16, 12).toISOString(), actualTotal: 12.5 },
+    { status: "bought", boughtAt: new Date(2026, 10, 16, 13).toISOString(), actualTotal: 20, offCard: true },
   ];
   const today = cardPosition({ daily: 30, anchor: 80, anchorAt, lines, now: new Date(2026, 10, 16, 18) });
   assert.equal(today.spent, 12.5);

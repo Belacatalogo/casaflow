@@ -188,7 +188,7 @@ function Lista() {
                           <p className="truncate text-sm text-muted">
                             {formatQty(qty)} {line.unit}
                             {line.store ? ` · ${line.store}` : ""}
-                            {bought ? " · pago" : ""}
+                            {bought ? (line.offCard ? " · fora do cartão" : " · cartão") : ""}
                             {product && coverageText(product) ? ` · ${coverageText(product).toLowerCase()}` : ""}
                           </p>
                           {advice && advice.qty !== line.qtyPlanned ? <p className="text-sm text-gold-deep">{advice.reason}</p> : null}

@@ -45,7 +45,7 @@ type CasaState = Snapshot & {
   removeProduct: (id: string) => void;
   addProductToMonth: (productId: string, month?: string) => boolean;
   updateLine: (id: string, patch: Partial<ShopLine>) => void;
-  markBought: (id: string, input: { qtyBought: number; actualTotal: number; store: string }) => void;
+  markBought: (id: string, input: { qtyBought: number; actualTotal: number; store: string; offCard?: boolean }) => void;
   setStatus: (id: string, status: LineStatus) => void;
   removeLine: (id: string) => void;
   generateMonth: (month: string) => number;
@@ -55,7 +55,7 @@ type CasaState = Snapshot & {
   ) => number;
   clearData: () => Promise<void>;
   importSnapshot: (snapshot: Snapshot) => void;
-  recordPurchases: (items: { name: string; qty: number; unit?: string; total: number; store?: string }[]) => number;
+  recordPurchases: (items: { name: string; qty: number; unit?: string; total: number; store?: string; offCard?: boolean }[]) => number;
   markFinished: (productId: string) => void;
   markRemaining: (productId: string, qty: number) => void;
   accessRole: "pending" | "owner" | "kitchen" | "none";
@@ -336,6 +336,7 @@ export const useCasa = create<CasaState>((set, get) => ({
               actualTotal: input.actualTotal,
               store: input.store.trim(),
               boughtAt: item.boughtAt ?? when,
+              offCard: input.offCard ? true : undefined,
             }
           : item,
       ),
@@ -356,7 +357,7 @@ export const useCasa = create<CasaState>((set, get) => ({
       lines: get().lines.map((line) => {
         if (line.id !== id) return line;
         if (status === "pending") {
-          return { ...line, status, qtyBought: 0, actualTotal: null, boughtAt: null, store: "" };
+          return { ...line, status, qtyBought: 0, actualTotal: null, boughtAt: null, store: "", offCard: undefined };
         }
         if (status === "skipped") return { ...line, status };
         return line;
@@ -487,6 +488,7 @@ export const useCasa = create<CasaState>((set, get) => ({
           actualTotal: total,
           store: storeName || line.store,
           boughtAt: now,
+          offCard: item.offCard ? true : undefined,
         };
       } else {
         lines.push({
@@ -503,6 +505,7 @@ export const useCasa = create<CasaState>((set, get) => ({
           status: "bought",
           boughtAt: now,
           store: storeName,
+          offCard: item.offCard ? true : undefined,
         });
       }
       count += 1;

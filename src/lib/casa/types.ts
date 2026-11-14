@@ -58,6 +58,8 @@ export type ShopLine = {
   status: LineStatus;
   boughtAt: string | null;
   store: string;
+  /** Pago com dinheiro ou outro cartão. Não sai do vale alimentação. */
+  offCard?: boolean;
   /** Kept on the list even in Economia or Acabando. */
   hold?: boolean;
 };
