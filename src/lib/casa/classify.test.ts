@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { guessProduct, sameProductName } from "./classify.ts";
+import { findProductByName, guessProduct, sameProductName } from "./classify.ts";
 import { parseReceiptDocument, parseTextLine } from "./receipt.ts";
 
 test("óleo, leite, arroz e sabão caem na categoria certa", () => {
@@ -16,6 +16,13 @@ test("óleo, leite, arroz e sabão caem na categoria certa", () => {
 test("não confunde sabão com sabonete nem pão com sabão", () => {
   assert.equal(guessProduct("sabonete")?.icon, "droplets");
   assert.equal(guessProduct("sabão")?.icon, "spray");
+});
+
+test("não junta leite com leite condensado", () => {
+  const products = [{ name: "Leite" }, { name: "Arroz" }];
+  assert.equal(findProductByName(products, "LEITE CONDENSADO")?.name, undefined);
+  assert.equal(findProductByName(products, "ARROZ TIPO 1 5KG")?.name, "Arroz");
+  assert.equal(findProductByName(products, "leite integral")?.name, "Leite");
 });
 
 test("reconhece o mesmo produto com acento", () => {

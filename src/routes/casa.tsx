@@ -3,8 +3,8 @@ import { useMemo, useState } from "react";
 import { Reveal } from "@/components/casa/chrome";
 import { CategoryGlyph } from "@/components/casa/icons";
 import { Button, Card, EmptyState, Modal, PageSkeleton, fieldClass } from "@/components/ui/controls";
-import { formatQty, parseDecimal } from "@/lib/casa/format";
-import { sameProductName } from "@/lib/casa/classify";
+import { formatQty, parseDecimal, currentMonthKey } from "@/lib/casa/format";
+import { findProductByName } from "@/lib/casa/classify";
 import { pantryStep } from "@/lib/casa/stock";
 import { useCasa } from "@/lib/casa/store";
 import type { Product } from "@/lib/casa/types";
@@ -25,7 +25,6 @@ function Pantry() {
   const products = useCasa((state) => state.products);
   const categories = useCasa((state) => state.categories);
   const lines = useCasa((state) => state.lines);
-  const viewMonth = useCasa((state) => state.viewMonth);
   const markFinished = useCasa((state) => state.markFinished);
   const markRemaining = useCasa((state) => state.markRemaining);
   const lowerPantry = useCasa((state) => state.lowerPantry);
@@ -37,7 +36,7 @@ function Pantry() {
   const [adding, setAdding] = useState(false);
   const [newName, setNewName] = useState("");
   const [newQty, setNewQty] = useState("");
-  const match = products.find((product) => sameProductName(product.name, newName));
+  const match = findProductByName(products, newName);
 
   const named = useMemo(() => {
     const text = query.trim().toLowerCase();
@@ -110,7 +109,7 @@ function Pantry() {
                 </div>
                 <ul className="mt-2">
                   {rows.map((product) => {
-                    const pending = lines.some((line) => line.productId === product.id && line.monthKey === viewMonth && line.status === "pending");
+                    const pending = lines.some((line) => line.productId === product.id && line.monthKey === currentMonthKey() && line.status === "pending");
                     return (
                       <li key={product.id} className="border-t border-line py-3 first:border-t-0">
                         <div className="flex items-baseline justify-between gap-3">

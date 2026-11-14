@@ -64,7 +64,8 @@ export function applyPantryChange(
 ): Snapshot {
   const product = snapshot.products.find((item) => item.id === productId);
   if (!product) return snapshot;
-  let onHand = product.onHand ?? 0;
+  const previousOnHand = product.onHand ?? 0;
+  let onHand = previousOnHand;
   if (action === "down") onHand = Math.max(0, Math.round((onHand - pantryStep(product.unit)) * 1000) / 1000);
   if (action === "out") onHand = 0;
   if (action === "set") onHand = Math.max(0, Math.round(qty * 1000) / 1000);
@@ -83,11 +84,14 @@ export function applyPantryChange(
   );
   const stock = record ? [...snapshot.stock, { id: crypto.randomUUID(), productId, at: now.toISOString(), kind, qty: onHand }] : snapshot.stock;
   let lines = snapshot.lines;
+  if (action === "set" && previousOnHand <= 0 && onHand > 0) {
+    lines = lines.filter((line) => !(line.productId === productId && line.monthKey === month && line.status === "pending"));
+  }
   if (kind === "finished" && !lines.some((line) => line.productId === productId && line.monthKey === month && line.status === "pending")) {
     const current = products.find((item) => item.id === productId) ?? product;
-    const lastPaid = [...lines]
-      .reverse()
-      .find((line) => line.productId === productId && line.status === "bought" && line.qtyBought > 0 && (line.actualTotal ?? 0) > 0);
+    const lastPaid = lines
+      .filter((line) => line.productId === productId && line.status === "bought" && line.qtyBought > 0 && (line.actualTotal ?? 0) > 0)
+      .sort((a, b) => (b.boughtAt ?? "").localeCompare(a.boughtAt ?? ""))[0];
     const lastPrice = lastPaid?.actualTotal ? Math.round((lastPaid.actualTotal / lastPaid.qtyBought) * 100) / 100 : 0;
     const line: ShopLine = {
       id: crypto.randomUUID(),

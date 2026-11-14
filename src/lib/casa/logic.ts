@@ -355,13 +355,13 @@ export function buildInsights(input: {
     );
     insights.push({
       id: `stock-${product.id}`,
-      tone: left < 0 ? "warn" : "neutral",
-      title: left < 0 ? `${product.name} deve ter acabado` : `${product.name} acaba em breve`,
+      tone: left <= 0 ? "warn" : "neutral",
+      title: left <= 0 ? `${product.name} acabou` : `${product.name} acaba em breve`,
       detail:
-        left < 0
+        left <= 0
           ? pending
-            ? "Pelo ritmo da casa, já acabou. Continua na lista."
-            : "Pelo ritmo da casa, já acabou. Vale colocar de novo na lista."
+            ? "Já está na lista para comprar de novo."
+            : "Vale colocar na lista."
           : pending
             ? `Deve durar mais ${left} dia${left === 1 ? "" : "s"}. Já está na lista.`
             : `Deve durar mais ${left} dia${left === 1 ? "" : "s"}.`,

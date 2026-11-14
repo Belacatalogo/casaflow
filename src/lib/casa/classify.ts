@@ -60,6 +60,37 @@ export function sameProductName(left: string, right: string): boolean {
   return new RegExp(`(^|\\s)${escapeRegExp(shorter)}(\\s|$)`).test(longer);
 }
 
+export function matchedWord(name: string): string | null {
+  const text = normalizeName(name);
+  if (text.length < 2) return null;
+  for (const rule of INDEX) {
+    if (new RegExp(`(^|\\s)${escapeRegExp(rule.word)}(\\s|$)`).test(text)) return rule.word;
+  }
+  return null;
+}
+
+export function findProductByName<T extends { name: string }>(products: T[], rawName: string): T | undefined {
+  const text = normalizeName(rawName);
+  if (!text) return undefined;
+  const exact = products.find((product) => normalizeName(product.name) === text);
+  if (exact) return exact;
+  const named = products.filter((product) => {
+    const name = normalizeName(product.name);
+    if (name.length < 4) return false;
+    return new RegExp(`(^|\\s)${escapeRegExp(name)}(\\s|$)`).test(text);
+  });
+  const word = matchedWord(rawName);
+  if (word) {
+    const specific = named.filter((product) => matchedWord(product.name) === word || normalizeName(product.name) === word);
+    if (specific.length > 0) return specific.sort((a, b) => normalizeName(b.name).length - normalizeName(a.name).length)[0];
+    if (named.length > 0 && named.every((product) => {
+      const known = matchedWord(product.name);
+      return known != null && known !== word;
+    })) return undefined;
+  }
+  return named.sort((a, b) => normalizeName(b.name).length - normalizeName(a.name).length)[0];
+}
+
 export function tidyProductName(name: string): string {
   const clean = name.replace(/\s+/g, " ").trim();
   if (clean.length < 2) return clean;

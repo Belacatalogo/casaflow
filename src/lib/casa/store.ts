@@ -1,6 +1,6 @@
 import { toast } from "sonner";
 import { create } from "zustand";
-import { categoryForGuess, guessProduct, sameProductName, tidyProductName } from "@/lib/casa/classify";
+import { categoryForGuess, findProductByName, guessProduct, tidyProductName } from "@/lib/casa/classify";
 import { currentMonthKey, monthTitle, round2, shiftMonth } from "@/lib/casa/format";
 import { planLine } from "@/lib/casa/logic";
 import { applyPantryChange } from "@/lib/casa/stock";
@@ -146,7 +146,7 @@ function noteStock(
   addToList: boolean,
 ) {
   const product = get().products.find((item) => item.id === productId);
-  const month = get().viewMonth;
+  const month = currentMonthKey();
   if (!product || !month) return;
   const at = new Date();
   const action = mark.kind === "finished" ? "out" : "set";
@@ -485,7 +485,32 @@ export const useCasa = create<CasaState>((set, get) => ({
       const receiptUnit = item.unit?.trim() || "";
       const unit = (receiptUnit || guess?.unit || "un").trim() || "un";
       const unitPrice = round2(total / qty);
-      let product = products.find((entry) => sameProductName(entry.name, rawName));
+      let product = findProductByName(products, rawName);
+      if (product) {
+        const todayIndex = lines.findIndex((line) => {
+          if (line.productId !== product?.id || line.monthKey !== month || line.status !== "bought" || line.qtyBought !== qty || !line.boughtAt) return false;
+          const when = new Date(line.boughtAt);
+          const nowDate = new Date();
+          return when.getFullYear() === nowDate.getFullYear() && when.getMonth() === nowDate.getMonth() && when.getDate() === nowDate.getDate();
+        });
+        if (todayIndex >= 0) {
+          const current = lines[todayIndex];
+          if (!current) continue;
+          if (round2(current.actualTotal ?? 0) !== total) {
+            lines[todayIndex] = {
+              ...current,
+              actualTotal: total,
+              estimatedUnitPrice: unitPrice,
+              store: item.store?.trim() || current.store,
+              offCard: item.offCard ? true : current.offCard,
+            };
+            const index = products.findIndex((entry) => entry.id === product?.id);
+            if (index >= 0) products[index] = { ...products[index], estimatedUnitPrice: unitPrice };
+            count += 1;
+          }
+          continue;
+        }
+      }
       if (!product) {
         product = {
           id: crypto.randomUUID(),
@@ -571,7 +596,7 @@ export const useCasa = create<CasaState>((set, get) => ({
 
   lowerPantry: (productId) => {
     const product = get().products.find((item) => item.id === productId);
-    const month = get().viewMonth;
+    const month = currentMonthKey();
     if (!product || !month || (product.onHand ?? 0) <= 0) return;
     const next = applyPantryChange(snapshotOf(get()), productId, "down", 0, month, new Date());
     const added = next.lines.length > get().lines.length;
@@ -584,9 +609,9 @@ export const useCasa = create<CasaState>((set, get) => ({
   putAtHome: (name, qty) => {
     const raw = name.trim().replace(/\s+/g, " ");
     if (raw.length < 2 || qty <= 0) return;
-    const existing = get().products.find((product) => sameProductName(product.name, raw));
+    const existing = findProductByName(get().products, raw);
     if (existing) {
-      const month = get().viewMonth;
+      const month = currentMonthKey();
       if (!month) return;
       const next = applyPantryChange(snapshotOf(get()), existing.id, "set", qty, month, new Date());
       set({ products: next.products, stock: next.stock, lines: next.lines });
