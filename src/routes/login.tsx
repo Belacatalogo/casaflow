@@ -98,6 +98,8 @@ function explain(code: string | undefined, mode: "criar" | "entrar") {
   }
   if (code === "INVALID_EMAIL_OR_PASSWORD") return "E-mail ou senha não conferem.";
   if (code === "PASSWORD_TOO_SHORT" || code === "PASSWORD_TOO_LONG") return "A senha precisa ter pelo menos 8 caracteres.";
-  if (code === "INVALID_EMAIL") return "Esse e-mail não parece válido.";
+  if (code === "INVALID_ORIGIN" || code === "FORBIDDEN") {
+    return "O site ainda não aceitou este endereço. Atualize a página e tente de novo.";
+  }
   return mode === "criar" ? "Não consegui criar a conta. Tente de novo." : "Não consegui entrar. Confira o e-mail e a senha.";
 }
