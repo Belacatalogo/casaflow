@@ -1,11 +1,11 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Check, Pencil, Plus, Search } from "lucide-react";
 import { useMemo, useState } from "react";
-import { MonthSwitcher, PageIntro, Reveal } from "@/components/casa/chrome";
+import { MonthSwitcher, Reveal } from "@/components/casa/chrome";
 import { CategoryGlyph } from "@/components/casa/icons";
 import { AddDialog, BuyDialog, PlanDialog } from "@/components/casa/dialogs";
 import { Button, Card, EmptyState, PageSkeleton, fieldClass } from "@/components/ui/controls";
-import { formatMoney, formatQty, monthTitle } from "@/lib/casa/format";
+import { formatMoney, formatQty } from "@/lib/casa/format";
 import { lineActual, lineEstimate, summarizeMonth } from "@/lib/casa/logic";
 import { useCasa } from "@/lib/casa/store";
 import type { ShopLine } from "@/lib/casa/types";
@@ -45,21 +45,37 @@ function Lista() {
   );
   const ordered = [...categories].sort((a, b) => a.order - b.order);
   const skipped = mine.filter((line) => line.status === "skipped");
+  const active = mine.filter((line) => line.status !== "skipped");
   const hasRecurring = products.some((product) => product.recurring);
+  const done = totals.count > 0 ? Math.round((totals.boughtCount / totals.count) * 100) : 0;
 
   return (
     <Reveal>
-      <PageIntro
-        eyebrow="Lista"
-        title={monthTitle(viewMonth)}
-        lede={`${totals.boughtCount} de ${totals.count} já comprados. Previsto: ${formatMoney(totals.estimatedAll)}.`}
-        extra={<MonthSwitcher />}
-      />
-      <div className="mt-5 flex flex-col gap-3 sm:flex-row">
-        <div className="relative min-w-0 flex-1">
-          <Search className="pointer-events-none absolute left-3 top-3 size-5 text-muted" />
-          <input className={cn(fieldClass, "pl-10")} placeholder="Buscar na lista" value={query} onChange={(event) => setQuery(event.target.value)} />
+      <header>
+        <p className="text-xs tracking-[0.16em] text-muted uppercase">Lista</p>
+        {totals.count > 0 ? (
+          <>
+            <h1 className="mt-1 font-display text-[2rem] leading-none tracking-tight text-ink">
+              {totals.boughtCount} de {totals.count}
+            </h1>
+            <p className="mt-2 text-sm text-muted">Previsto {formatMoney(totals.estimatedAll)}</p>
+            <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-sunken">
+              <div className="h-full rounded-full bg-terra" style={{ width: `${done}%` }} />
+            </div>
+          </>
+        ) : (
+          <h1 className="mt-1 font-display text-[2rem] leading-none tracking-tight text-ink">Nada neste mês</h1>
+        )}
+        <div className="mt-4 rounded-full bg-sunken">
+          <MonthSwitcher className="w-full" titleClassName="min-w-0 flex-1 truncate px-1 text-base sm:text-lg" />
         </div>
+      </header>
+
+      <div className="relative mt-4">
+        <Search className="pointer-events-none absolute left-3 top-3 size-5 text-muted" />
+        <input className={cn(fieldClass, "rounded-full pl-10")} placeholder="Buscar na lista" value={query} onChange={(event) => setQuery(event.target.value)} />
+      </div>
+      <div className="mt-2 grid grid-cols-2 gap-2">
         <Button onClick={() => setAdding(true)}>
           <Plus className="size-4" />
           Adicionar
@@ -69,7 +85,7 @@ function Lista() {
         </Button>
       </div>
 
-      {mine.filter((line) => line.status !== "skipped").length === 0 ? (
+      {active.length === 0 ? (
         <div className="mt-5">
           <EmptyState
             title={query ? "Nada com esse nome" : "Lista vazia"}
@@ -92,24 +108,26 @@ function Lista() {
           />
         </div>
       ) : (
-        <div className="mt-5 flex flex-col gap-4">
+        <div className="mt-5 flex flex-col gap-3">
           {ordered.map((category) => {
-            const rows = mine.filter((line) => line.categoryId === category.id && line.status !== "skipped");
+            const rows = active.filter((line) => line.categoryId === category.id);
             if (rows.length === 0) return null;
+            const categoryTotal = rows.reduce((sum, line) => sum + (line.status === "bought" ? lineActual(line) : lineEstimate(line)), 0);
             return (
-              <Card key={category.id} className="py-2">
-                <div className="flex items-center gap-2 px-1 py-2">
-                  <span className="grid size-9 place-items-center rounded-2xl bg-sunken text-ink">
+              <Card key={category.id} className="overflow-hidden rounded-[2rem] p-0 sm:p-0">
+                <div className="flex items-center gap-2 px-4 py-3">
+                  <span className="grid size-9 place-items-center rounded-full bg-sunken text-ink">
                     <CategoryGlyph name={category.icon} className="size-4" />
                   </span>
-                  <h2 className="font-medium text-ink">{category.name}</h2>
+                  <h2 className="min-w-0 flex-1 truncate font-medium text-ink">{category.name}</h2>
+                  <span className="shrink-0 text-sm tabular-nums text-muted">{formatMoney(categoryTotal)}</span>
                 </div>
                 <ul>
                   {rows.map((line) => {
                     const bought = line.status === "bought";
                     const value = bought ? lineActual(line) : lineEstimate(line);
                     return (
-                      <li key={line.id} className="flex items-center gap-2 border-t border-line py-2">
+                      <li key={line.id} className="flex items-center gap-1 border-t border-line px-2 py-1.5">
                         <button
                           type="button"
                           role="checkbox"
@@ -124,17 +142,22 @@ function Lista() {
                           <Check className="size-4" />
                         </button>
                         <div className="min-w-0 flex-1">
-                          <p className={cn("truncate font-medium", bought ? "text-muted" : "text-ink")}>{line.name}</p>
-                          <p className="text-sm text-muted">
+                          <div className="flex items-baseline justify-between gap-2">
+                            <p className={cn("truncate font-medium", bought ? "text-muted line-through decoration-line" : "text-ink")}>{line.name}</p>
+                            <p className={cn("shrink-0 tabular-nums", bought ? "text-muted" : "font-medium text-ink")}>{formatMoney(value)}</p>
+                          </div>
+                          <p className="truncate text-sm text-muted">
                             {formatQty(bought ? line.qtyBought : line.qtyPlanned)} {line.unit}
                             {line.store ? ` · ${line.store}` : ""}
+                            {bought ? " · pago" : ""}
                           </p>
                         </div>
-                        <div className="text-right">
-                          <p className="tabular-nums font-medium text-ink">{formatMoney(value)}</p>
-                          <p className="text-xs text-muted">{bought ? "pago" : "estimado"}</p>
-                        </div>
-                        <button type="button" className="grid size-11 place-items-center rounded-full text-muted hover:bg-sunken" aria-label={`Editar ${line.name}`} onClick={() => (bought ? setBuying(line) : setEditing(line))}>
+                        <button
+                          type="button"
+                          className="grid size-11 shrink-0 place-items-center rounded-full text-muted hover:bg-sunken"
+                          aria-label={`Editar ${line.name}`}
+                          onClick={() => (bought ? setBuying(line) : setEditing(line))}
+                        >
                           <Pencil className="size-4" />
                         </button>
                       </li>
@@ -148,19 +171,19 @@ function Lista() {
       )}
 
       {skipped.length > 0 ? (
-        <details className="mt-4">
-          <summary className="cursor-pointer text-sm text-muted">Não vou comprar ({skipped.length})</summary>
+        <Card className="mt-3 rounded-[2rem]">
+          <h2 className="font-medium text-ink">Não vou comprar</h2>
           <ul className="mt-2">
             {skipped.map((line) => (
-              <li key={line.id} className="flex items-center justify-between gap-3 py-2">
-                <span className="text-muted">{line.name}</span>
+              <li key={line.id} className="flex items-center justify-between gap-3 border-t border-line py-2 first:border-t-0">
+                <span className="min-w-0 truncate text-muted">{line.name}</span>
                 <Button variant="ghost" onClick={() => setStatus(line.id, "pending")}>
-                  Trazer de volta
+                  Voltar
                 </Button>
               </li>
             ))}
           </ul>
-        </details>
+        </Card>
       ) : null}
 
       <AddDialog open={adding} onOpenChange={setAdding} />
