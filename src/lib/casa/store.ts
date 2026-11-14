@@ -59,6 +59,7 @@ type CasaState = Snapshot & {
   markFinished: (productId: string) => void;
   markRemaining: (productId: string, qty: number) => void;
   lowerPantry: (productId: string) => void;
+  putAtHome: (name: string, qty: number) => void;
   accessRole: "pending" | "owner" | "kitchen" | "none";
   homeCode: string;
   remoteStamp: string;
@@ -545,6 +546,39 @@ export const useCasa = create<CasaState>((set, get) => ({
     persist(get);
     const left = next.products.find((item) => item.id === productId)?.onHand ?? 0;
     toast.success(left === 0 ? (added ? `${product.name} acabou e entrou na lista.` : `${product.name} acabou.`) : `${product.name} diminuiu.`);
+  },
+
+  putAtHome: (name, qty) => {
+    const raw = name.trim().replace(/\s+/g, " ");
+    if (raw.length < 2 || qty <= 0) return;
+    const existing = get().products.find((product) => sameProductName(product.name, raw));
+    if (existing) {
+      const month = get().viewMonth;
+      if (!month) return;
+      const next = applyPantryChange(snapshotOf(get()), existing.id, "set", qty, month, new Date());
+      set({ products: next.products, stock: next.stock, lines: next.lines });
+      persist(get);
+      toast.success(`${existing.name} anotado. É o mesmo produto.`);
+      return;
+    }
+    const categories = get().categories;
+    const guess = guessProduct(raw);
+    const category = categoryForGuess(categories, guess) ?? categories[0];
+    const product: Product = {
+      id: crypto.randomUUID(),
+      name: tidyProductName(raw),
+      categoryId: category?.id ?? "",
+      unit: guess?.unit ?? "un",
+      defaultQty: qty,
+      estimatedUnitPrice: 0,
+      coverageDays: guess?.coverageDays ?? 30,
+      recurring: guess?.recurring ?? false,
+      createdAt: new Date().toISOString(),
+      onHand: qty,
+    };
+    set({ products: [...get().products, product] });
+    persist(get);
+    toast.success(`${product.name} anotado em casa.`);
   },
 
   clearData: async () => {

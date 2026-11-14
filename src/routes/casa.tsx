@@ -4,6 +4,7 @@ import { Reveal } from "@/components/casa/chrome";
 import { CategoryGlyph } from "@/components/casa/icons";
 import { Button, Card, EmptyState, Modal, PageSkeleton, fieldClass } from "@/components/ui/controls";
 import { formatQty, parseDecimal } from "@/lib/casa/format";
+import { sameProductName } from "@/lib/casa/classify";
 import { pantryStep } from "@/lib/casa/stock";
 import { useCasa } from "@/lib/casa/store";
 import type { Product } from "@/lib/casa/types";
@@ -28,10 +29,15 @@ function Pantry() {
   const markFinished = useCasa((state) => state.markFinished);
   const markRemaining = useCasa((state) => state.markRemaining);
   const lowerPantry = useCasa((state) => state.lowerPantry);
+  const putAtHome = useCasa((state) => state.putAtHome);
   const [query, setQuery] = useState("");
   const [tab, setTab] = useState<"tem" | "acabou">("tem");
   const [editing, setEditing] = useState<Product | null>(null);
   const [qty, setQty] = useState("");
+  const [adding, setAdding] = useState(false);
+  const [newName, setNewName] = useState("");
+  const [newQty, setNewQty] = useState("");
+  const match = products.find((product) => sameProductName(product.name, newName));
 
   const named = useMemo(() => {
     const text = query.trim().toLowerCase();
@@ -54,6 +60,16 @@ function Pantry() {
           {stocked.length === 0 ? "Nada anotado ainda" : stocked.length === 1 ? "1 item em casa" : `${stocked.length} itens em casa`}
           {gone.length > 0 ? ` · ${gone.length} acabou` : ""}
         </p>
+        <Button
+          className="mt-4"
+          onClick={() => {
+            setNewName("");
+            setNewQty("");
+            setAdding(true);
+          }}
+        >
+          Tenho aqui
+        </Button>
       </header>
 
       <input className={cn(fieldClass, "mt-5 rounded-full")} placeholder="Buscar" value={query} onChange={(event) => setQuery(event.target.value)} />
@@ -74,7 +90,7 @@ function Pantry() {
               query
                 ? "Tente outro nome."
                 : tab === "tem"
-                  ? "Quando uma compra entrar, a quantidade aparece aqui."
+                  ? "Quando uma compra entrar, ou você anotar o que já tem, aparece aqui."
                   : "O que acabar fica nesta lista e entra para comprar de novo."
             }
           />
@@ -144,6 +160,25 @@ function Pantry() {
         </div>
       )}
 
+      <Modal open={adding} onOpenChange={setAdding} title="O que já tem" description="Um produto só. Se ele já existir, só anoto a quantidade.">
+        <form
+          className="flex flex-col gap-3"
+          onSubmit={(event) => {
+            event.preventDefault();
+            const value = parseDecimal(newQty);
+            if (newName.trim().length < 2 || value == null || value <= 0) return;
+            putAtHome(newName, value);
+            setAdding(false);
+          }}
+        >
+          <input className={fieldClass} placeholder="Arroz, óleo, leite" value={newName} onChange={(event) => setNewName(event.target.value)} />
+          {match ? <p className="text-sm text-muted">Já existe: {match.name}. Não vou criar outro.</p> : null}
+          <input className={fieldClass} inputMode="decimal" placeholder={match ? `Quantidade em ${match.unit}` : "Quantidade"} value={newQty} onChange={(event) => setNewQty(event.target.value)} />
+          <Button type="submit" size="lg">
+            Anotar
+          </Button>
+        </form>
+      </Modal>
       <Modal open={Boolean(editing)} onOpenChange={(open) => !open && setEditing(null)} title={editing ? editing.name : "Quantidade"} description="Quanto ainda tem agora.">
         <form
           className="flex flex-col gap-3"
