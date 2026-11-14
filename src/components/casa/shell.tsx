@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
+import { clearVisit, markVisit, visitOn, visitRequested } from "@/lib/casa/visit";
 import { applyTheme } from "@/lib/casa/storage";
 import { useCasa } from "@/lib/casa/store";
 import { Button } from "@/components/ui/controls";
@@ -46,6 +47,8 @@ export function AppShell({ children }: { children: ReactNode }) {
   const accessRole = useCasa((state) => state.accessRole);
   const connectHome = useCasa((state) => state.connectHome);
   const pullHome = useCasa((state) => state.pullHome);
+  const loadVisit = useCasa((state) => state.loadVisit);
+  const visit = useCasa((state) => state.visit);
   const { user, isPending } = useCurrentUserState();
   const lines = useCasa((state) => state.lines);
   const viewMonth = useCasa((state) => state.viewMonth);
@@ -58,16 +61,23 @@ export function AppShell({ children }: { children: ReactNode }) {
   const dark = settings.theme === "dark";
   const visible = NAV.filter((item) => item.label.toLowerCase().includes(query.trim().toLowerCase()));
 
-  useEffect(() => {
-    void hydrate();
-  }, [hydrate]);
+  const visiting = visitRequested(pathname) || visit || visitOn();
 
   useEffect(() => {
-    if (!ready || !user) return;
+    if (visitRequested(pathname) || visitOn()) {
+      markVisit();
+      loadVisit();
+      return;
+    }
+    void hydrate();
+  }, [pathname, hydrate, loadVisit]);
+
+  useEffect(() => {
+    if (!ready || !user || visiting) return;
     void connectHome();
     const timer = window.setInterval(() => void pullHome(), 8000);
     return () => window.clearInterval(timer);
-  }, [ready, user, connectHome, pullHome]);
+  }, [ready, user, visiting, connectHome, pullHome]);
 
   useEffect(() => {
     if (!ready || settings.theme !== "system") return;
@@ -106,15 +116,18 @@ export function AppShell({ children }: { children: ReactNode }) {
     return <div className="min-h-screen bg-bg text-ink">{children}</div>;
   }
 
-  if (isPending || !ready || (user && accessRole === "pending")) {
+  if (visiting) {
+    if (!ready || !visit) return <main className="grid min-h-screen place-items-center bg-bg text-muted">Abrindo…</main>;
+    if (pathname === "/visita") return <Navigate to="/" />;
+  } else if (isPending || !ready || (user && accessRole === "pending")) {
     return <main className="grid min-h-screen place-items-center bg-bg text-muted">Abrindo…</main>;
+  } else if (!user) {
+    return <Navigate to="/login" />;
+  } else if (accessRole === "none") {
+    return <JoinHouse />;
   }
 
-  if (!user) return <Navigate to="/login" />;
-
-  if (accessRole === "none") return <JoinHouse />;
-
-  if (accessRole === "kitchen") {
+  if (!visiting && accessRole === "kitchen") {
     if (pathname !== "/cozinha") return <Navigate to="/cozinha" />;
     return <div className="min-h-screen bg-bg px-4 py-8 text-ink">{children}</div>;
   }
@@ -257,7 +270,22 @@ export function AppShell({ children }: { children: ReactNode }) {
       </aside>
 
       <div className="shell-pad min-h-screen">
-        <main className="mx-auto w-full max-w-5xl px-4 py-5 lg:px-8 lg:py-8">{children}</main>
+        <main className="mx-auto w-full max-w-5xl px-4 py-5 lg:px-8 lg:py-8">
+          {visit ? (
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-sunken px-4 py-3 text-sm text-ink">
+              <p>Visita liberada. Dá para abrir todas as abas. Nada é salvo.</p>
+              <div className="flex gap-4">
+                <Link to="/cozinha" className="font-medium text-ink">
+                  Tela da cozinha
+                </Link>
+                <button type="button" className="font-medium text-terra-deep" onClick={() => { clearVisit(); window.location.href = "/"; }}>
+                  Sair da visita
+                </button>
+              </div>
+            </div>
+          ) : null}
+          {children}
+        </main>
       </div>
     </div>
   );

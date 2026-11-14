@@ -18,6 +18,7 @@ import { Route as CozinhaRouteImport } from './routes/cozinha'
 import { Route as HistoricoRouteImport } from './routes/historico'
 import { Route as ListaRouteImport } from './routes/lista'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as VisitaRouteImport } from './routes/visita'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 
 const IndexRoute = IndexRouteImport.update({
@@ -65,6 +66,11 @@ const LoginRoute = LoginRouteImport.update({
   path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
+const VisitaRoute = VisitaRouteImport.update({
+  id: '/visita',
+  path: '/visita',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   id: '/api/auth/$',
   path: '/api/auth/$',
@@ -81,6 +87,7 @@ export interface FileRoutesByFullPath {
   '/historico': typeof HistoricoRoute
   '/lista': typeof ListaRoute
   '/login': typeof LoginRoute
+  '/visita': typeof VisitaRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
 }
 export interface FileRoutesByTo {
@@ -93,6 +100,7 @@ export interface FileRoutesByTo {
   '/historico': typeof HistoricoRoute
   '/lista': typeof ListaRoute
   '/login': typeof LoginRoute
+  '/visita': typeof VisitaRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
 }
 export interface FileRoutesById {
@@ -106,6 +114,7 @@ export interface FileRoutesById {
   '/historico': typeof HistoricoRoute
   '/lista': typeof ListaRoute
   '/login': typeof LoginRoute
+  '/visita': typeof VisitaRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
 }
 export interface FileRouteTypes {
@@ -120,6 +129,7 @@ export interface FileRouteTypes {
     | '/historico'
     | '/lista'
     | '/login'
+    | '/visita'
     | '/api/auth/$'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -132,6 +142,7 @@ export interface FileRouteTypes {
     | '/historico'
     | '/lista'
     | '/login'
+    | '/visita'
     | '/api/auth/$'
   id:
     | '__root__'
@@ -144,6 +155,7 @@ export interface FileRouteTypes {
     | '/historico'
     | '/lista'
     | '/login'
+    | '/visita'
     | '/api/auth/$'
   fileRoutesById: FileRoutesById
 }
@@ -157,6 +169,7 @@ export interface RootRouteChildren {
   HistoricoRoute: typeof HistoricoRoute
   ListaRoute: typeof ListaRoute
   LoginRoute: typeof LoginRoute
+  VisitaRoute: typeof VisitaRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
 }
 
@@ -225,6 +238,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/visita': {
+      id: '/visita'
+      path: '/visita'
+      fullPath: '/visita'
+      preLoaderRoute: typeof VisitaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/auth/$': {
       id: '/api/auth/$'
       path: '/api/auth/$'
@@ -245,6 +265,7 @@ const rootRouteChildren: RootRouteChildren = {
   HistoricoRoute: HistoricoRoute,
   ListaRoute: ListaRoute,
   LoginRoute: LoginRoute,
+  VisitaRoute: VisitaRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
 }
 export const routeTree = rootRouteImport

@@ -4,8 +4,8 @@ import { categoryForGuess, guessProduct, sameProductName, tidyProductName } from
 import { currentMonthKey, monthTitle, round2, shiftMonth } from "@/lib/casa/format";
 import { planLine } from "@/lib/casa/logic";
 import { applyPantryChange } from "@/lib/casa/stock";
-import { adjustPantry, createHome, joinHome, loadHome, saveHome } from "@/lib/casa/home.functions";
-import type { HomeState } from "@/lib/casa/home.functions";
+import { adjustPantry, createHome, joinHome, loadHome, saveHome, type HomeState } from "@/lib/casa/home.functions";
+import { visitSnapshot } from "@/lib/casa/visit";
 import { emptyHome, isUntouchedDemo } from "@/lib/casa/seed";
 import { applyTheme, commitSnapshot, loadSnapshot, readThemePreference } from "@/lib/casa/storage";
 import {
@@ -61,6 +61,8 @@ type CasaState = Snapshot & {
   accessRole: "pending" | "owner" | "kitchen" | "none";
   homeCode: string;
   remoteStamp: string;
+  visit: boolean;
+  loadVisit: () => void;
   connectHome: () => Promise<void>;
   pullHome: () => Promise<void>;
   createHouse: () => Promise<void>;
@@ -79,6 +81,7 @@ function snapshotOf(state: Pick<CasaState, "settings" | "categories" | "products
 }
 
 function persist(get: () => CasaState) {
+  if (get().visit) return;
   commitSnapshot(snapshotOf(get()));
   if (get().accessRole !== "owner") return;
   dirty = true;
@@ -170,9 +173,15 @@ export const useCasa = create<CasaState>((set, get) => ({
   accessRole: "pending",
   homeCode: "",
   remoteStamp: "",
+  visit: false,
 
   hydrate: async () => {
     if (started) return;
+    if (typeof sessionStorage !== "undefined" && sessionStorage.getItem("casaflow-visit") === "1") {
+      started = true;
+      get().loadVisit();
+      return;
+    }
     started = true;
     try {
       let snapshot = await loadSnapshot();
@@ -519,6 +528,10 @@ export const useCasa = create<CasaState>((set, get) => ({
   },
 
   clearData: async () => {
+    if (get().visit) {
+      toast("Na visita nada é apagado.");
+      return;
+    }
     const current = get();
     const snapshot = emptyHome(current.settings.theme, {
       ...current.settings,
@@ -531,10 +544,29 @@ export const useCasa = create<CasaState>((set, get) => ({
   },
 
   importSnapshot: (snapshot) => {
+    if (get().visit) {
+      toast("Na visita nada é salvo.");
+      return;
+    }
     set({ ...snapshot, ready: true, error: null });
     applyTheme(snapshot.settings.theme);
     commitSnapshot(snapshot);
     toast.success("Dados trazidos para este celular.");
+  },
+
+  loadVisit: () => {
+    const snapshot = visitSnapshot();
+    applyTheme(snapshot.settings.theme);
+    set({
+      ...snapshot,
+      ready: true,
+      error: null,
+      viewMonth: currentMonthKey(),
+      accessRole: "owner",
+      homeCode: "VISITA",
+      remoteStamp: "",
+      visit: true,
+    });
   },
 
   connectHome: async () => {
