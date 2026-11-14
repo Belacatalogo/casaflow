@@ -67,7 +67,7 @@ function Pantry() {
             setAdding(true);
           }}
         >
-          Tenho aqui
+          Adicionar o que já tenho
         </Button>
       </header>
 
@@ -85,12 +85,19 @@ function Pantry() {
         <div className="mt-5">
           <EmptyState
             title={query ? "Nada com esse nome" : tab === "tem" ? "A casa ainda está vazia" : "Nada acabou"}
-            detail={
-              query
-                ? "Tente outro nome."
-                : tab === "tem"
-                  ? "Quando uma compra entrar, ou você anotar o que já tem, aparece aqui."
-                  : "O que acabar fica nesta lista e entra para comprar de novo."
+            detail={query ? "Tente outro nome." : tab === "tem" ? "Toque em adicionar e coloque o que já está aí." : "O que acabar fica nesta lista e entra para comprar de novo."}
+            action={
+              !query && tab === "tem" ? (
+                <Button
+                  onClick={() => {
+                    setNewName("");
+                    setNewQty("");
+                    setAdding(true);
+                  }}
+                >
+                  Adicionar o que já tenho
+                </Button>
+              ) : null
             }
           />
         </div>
@@ -159,12 +166,12 @@ function Pantry() {
         </div>
       )}
 
-      <Modal open={adding} onOpenChange={setAdding} title="O que já tem" description="Um produto só. Se ele já existir, só anoto a quantidade.">
+      <Modal open={adding} onOpenChange={setAdding} title="Adicionar o que já tem" description="Nome e, se souber, a quantidade. O preço entra depois, pela nota.">
         <form
           className="flex flex-col gap-3"
           onSubmit={(event) => {
             event.preventDefault();
-            const value = parseDecimal(newQty);
+            const value = newQty.trim() === "" ? 1 : parseDecimal(newQty);
             if (newName.trim().length < 2 || value == null || value <= 0) return;
             putAtHome(newName, value);
             setAdding(false);
@@ -172,9 +179,9 @@ function Pantry() {
         >
           <input className={fieldClass} placeholder="Arroz, óleo, leite" value={newName} onChange={(event) => setNewName(event.target.value)} />
           {match ? <p className="text-sm text-muted">Já existe: {match.name}. Não vou criar outro.</p> : null}
-          <input className={fieldClass} inputMode="decimal" placeholder={match ? `Quantidade em ${match.unit}` : "Quantidade"} value={newQty} onChange={(event) => setNewQty(event.target.value)} />
+          <input className={fieldClass} inputMode="decimal" autoComplete="off" placeholder="Quantidade, se souber" value={newQty} onChange={(event) => setNewQty(event.target.value)} />
           <Button type="submit" size="lg">
-            Anotar
+            Adicionar
           </Button>
         </form>
       </Modal>
