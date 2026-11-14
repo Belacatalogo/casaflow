@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { MonthChart } from "@/components/casa/charts";
 import { MonthSwitcher, PageIntro, Reveal } from "@/components/casa/chrome";
@@ -124,6 +124,15 @@ function Analytics() {
 
       <Card className="mt-3">
         <h2 className="font-display text-2xl text-ink">Próximo mês</h2>
+        {products.every((product) => !product.recurring) ? (
+          <div className="mt-3">
+            <p className="text-pretty text-muted">Cadastre produtos que se repetem para montar o mês que vem.</p>
+            <Button asChild className="mt-4">
+              <Link to="/catalogo">Cadastrar produto</Link>
+            </Button>
+          </div>
+        ) : (
+          <>
         <p className="mt-1 text-pretty text-muted">
           Sugestão para {monthTitle(next)}. Mude a quantidade se quiser.
           {existing > 0 ? ` O que já está na lista não entra de novo.` : ""}
@@ -174,6 +183,7 @@ function Analytics() {
         <div className="mt-5 flex flex-wrap items-center justify-between gap-3">
           <p className="font-display text-2xl tabular-nums text-ink">{formatMoney(plannedTotal)}</p>
           <Button
+            disabled={!drafts.some((draft) => draft.on && (parseDecimal(draft.qty) ?? 0) > 0 && (parseDecimal(draft.price) ?? 0) > 0)}
             onClick={() => {
               const payload = drafts
                 .filter((draft) => draft.on)
@@ -190,6 +200,8 @@ function Analytics() {
             Criar lista de {monthTitle(next).split(" de ")[0]}
           </Button>
         </div>
+          </>
+        )}
       </Card>
     </Reveal>
   );

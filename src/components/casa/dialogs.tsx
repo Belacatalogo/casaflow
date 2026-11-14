@@ -93,7 +93,7 @@ export function ProductDialog({
     if (!draft.categoryId) next.categoryId = "Escolha uma categoria.";
     if (!draft.unit.trim()) next.unit = "Informe a unidade.";
     if (defaultQty == null || defaultQty <= 0) next.defaultQty = "Quantidade maior que zero.";
-    if (estimatedUnitPrice == null || estimatedUnitPrice < 0) next.estimatedUnitPrice = "Informe o preço estimado.";
+    if (estimatedUnitPrice == null || estimatedUnitPrice <= 0) next.estimatedUnitPrice = "Informe o preço.";
     if (coverageDays == null || coverageDays < 1) next.coverageDays = "Quantos dias uma unidade dura?";
     setErrors(next);
     if (Object.keys(next).length || defaultQty == null || estimatedUnitPrice == null || coverageDays == null) return;
@@ -221,7 +221,9 @@ export function AddDialog({ open, onOpenChange }: { open: boolean; onOpenChange:
                 </span>
                 <Button
                   variant={pending.has(product.id) ? "secondary" : "primary"}
+                  disabled={pending.has(product.id)}
                   onClick={() => {
+                    if (pending.has(product.id)) return;
                     const added = addProductToMonth(product.id);
                     if (added) {
                       toast.success(`${product.name} entrou na lista.`);
@@ -335,7 +337,7 @@ export function PlanDialog({ line, onOpenChange }: { line: ShopLine | null; onOp
     if (!line) return;
     const qtyPlanned = parseDecimal(qty);
     const estimatedUnitPrice = parseDecimal(price);
-    if (qtyPlanned == null || qtyPlanned <= 0 || estimatedUnitPrice == null || estimatedUnitPrice < 0) {
+    if (qtyPlanned == null || qtyPlanned <= 0 || estimatedUnitPrice == null || estimatedUnitPrice <= 0) {
       setError("Quantidade e preço precisam ser válidos.");
       return;
     }

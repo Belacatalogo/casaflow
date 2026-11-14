@@ -35,7 +35,7 @@ function SettingsScreen() {
   const addCategory = useCasa((state) => state.addCategory);
   const updateCategory = useCasa((state) => state.updateCategory);
   const removeCategory = useCasa((state) => state.removeCategory);
-  const resetDemo = useCasa((state) => state.resetDemo);
+  const clearData = useCasa((state) => state.clearData);
   const importSnapshot = useCasa((state) => state.importSnapshot);
   const [name, setName] = useState(settings.householdName);
   const [budget, setBudget] = useState(decimalToInput(settings.monthlyBudget));
@@ -78,6 +78,7 @@ function SettingsScreen() {
               onBlur={() => {
                 const next = name.trim();
                 if (next.length >= 2) updateSettings({ householdName: next });
+                else setName(settings.householdName);
               }}
             />
           </Field>
@@ -212,7 +213,7 @@ function SettingsScreen() {
             />
           </label>
           <Button variant="soft" onClick={() => setConfirmReset(true)}>
-            Restaurar exemplo
+            Apagar produtos e compras
           </Button>
           <Button asChild variant="ghost">
             <Link to="/historico">Abrir histórico</Link>
@@ -220,15 +221,15 @@ function SettingsScreen() {
         </div>
       </Card>
 
-      <Modal open={confirmReset} onOpenChange={setConfirmReset} title="Voltar ao exemplo?" description="Apaga a lista, os produtos e o histórico deste celular e coloca a casa de demonstração.">
+      <Modal open={confirmReset} onOpenChange={setConfirmReset} title="Apagar produtos e compras?" description="A lista, os produtos e o histórico deste celular somem. Categorias, limite e tema continuam.">
         <div className="flex flex-col gap-2">
           <Button
             onClick={() => {
-              void resetDemo();
+              void clearData();
               setConfirmReset(false);
             }}
           >
-            Restaurar
+            Apagar
           </Button>
           <Button variant="secondary" onClick={() => setConfirmReset(false)}>
             Cancelar

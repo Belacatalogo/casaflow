@@ -83,9 +83,11 @@ function Shop() {
       <div className="sticky bottom-3 mt-6 rounded-3xl border border-line bg-hero px-4 py-4 text-on-hero shadow-card">
         <p className="text-sm text-on-hero-muted">Já gastei neste mês</p>
         <p className="font-display text-3xl tabular-nums">{formatMoney(totals.actual)}</p>
-        <button type="button" className="mt-2 text-sm text-gold" onClick={() => setShowDone((value) => !value)}>
-          {showDone ? "Esconder comprados" : `Ver ${bought.length} comprados`}
-        </button>
+        {bought.length > 0 ? (
+          <button type="button" className="mt-2 text-sm text-gold" onClick={() => setShowDone((value) => !value)}>
+            {showDone ? "Esconder comprados" : `Ver ${bought.length} comprados`}
+          </button>
+        ) : null}
         {showDone ? (
           <ul className="mt-3 flex flex-col gap-2 text-sm">
             {bought.map((line) => (

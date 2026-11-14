@@ -117,11 +117,13 @@ function Catalog() {
                   </div>
                 </dl>
                 <p className="mt-3 text-sm text-pretty text-muted">
-                  {formatQty(suggestion.qty)} {product.unit} {suggestion.reason}. Uma unidade dura cerca de {product.coverageDays} dias para 3 pessoas.
+                  {formatQty(suggestion.qty)} {product.unit}, {suggestion.reason}. Uma unidade dura cerca de {product.coverageDays} dias.
                 </p>
                 <div className="mt-4 flex flex-wrap gap-2">
                   <Button
+                    disabled={pending}
                     onClick={() => {
+                      if (pending) return;
                       const added = addProductToMonth(product.id);
                       if (added) toast.success(`${product.name} entrou na lista.`);
                     }}

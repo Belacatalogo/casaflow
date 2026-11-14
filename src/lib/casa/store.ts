@@ -2,7 +2,7 @@ import { toast } from "sonner";
 import { create } from "zustand";
 import { currentMonthKey, monthTitle, shiftMonth } from "@/lib/casa/format";
 import { planLine } from "@/lib/casa/logic";
-import { buildSeed } from "@/lib/casa/seed";
+import { emptyHome, isUntouchedDemo } from "@/lib/casa/seed";
 import { applyTheme, commitSnapshot, loadSnapshot, readThemePreference } from "@/lib/casa/storage";
 import {
   defaultSettings,
@@ -49,7 +49,7 @@ type CasaState = Snapshot & {
     month: string,
     drafts: { productId: string; qty: number; unitPrice: number }[],
   ) => number;
-  resetDemo: () => Promise<void>;
+  clearData: () => Promise<void>;
   importSnapshot: (snapshot: Snapshot) => void;
 };
 
@@ -88,8 +88,9 @@ export const useCasa = create<CasaState>((set, get) => ({
     started = true;
     try {
       let snapshot = await loadSnapshot();
-      if (!snapshot) {
-        snapshot = buildSeed(new Date());
+      const theme = snapshot?.settings.theme ?? readThemePreference() ?? defaultSettings.theme;
+      if (!snapshot || isUntouchedDemo(snapshot)) {
+        snapshot = emptyHome(theme);
         await commitSnapshot(snapshot);
       }
       const storedMonth = initialMonth();
@@ -123,7 +124,10 @@ export const useCasa = create<CasaState>((set, get) => ({
 
   addCategory: (input) => {
     const name = input.name.trim();
-    if (name.length < 2) return;
+    if (name.length < 2) {
+      toast("O nome da categoria precisa de pelo menos 2 letras.");
+      return;
+    }
     const category: Category = {
       id: crypto.randomUUID(),
       name,
@@ -147,7 +151,7 @@ export const useCasa = create<CasaState>((set, get) => ({
 
   removeCategory: (id) => {
     if (get().products.some((product) => product.categoryId === id)) {
-      toast("Essa categoria ainda tem produtos.");
+      toast("Essa categoria ainda tem produtos. Apague ou mude esses produtos antes.");
       return;
     }
     set({ categories: get().categories.filter((category) => category.id !== id) });
@@ -260,25 +264,44 @@ export const useCasa = create<CasaState>((set, get) => ({
   },
 
   generateMonth: (month) => {
-    const existing = new Set(get().lines.filter((line) => line.monthKey === month).map((line) => line.productId));
-    const additions = get()
-      .products.filter((product) => product.recurring && !existing.has(product.id))
-      .map((product) => planLine(product, month, get().settings.people, get().lines));
-    if (additions.length === 0) {
-      toast("A lista desse mês já está completa.");
+    const recurring = get().products.filter((product) => product.recurring);
+    if (recurring.length === 0) {
+      toast("Cadastre um produto e marque para repetir todo mês.");
       return 0;
     }
-    set({ lines: [...get().lines, ...additions] });
+    const recurringIds = new Set(recurring.map((product) => product.id));
+    const monthLines = get().lines.filter((line) => line.monthKey === month);
+    const covered = new Set(monthLines.filter((line) => line.status !== "skipped").map((line) => line.productId));
+    const reviveIds = new Set(
+      monthLines
+        .filter((line) => line.status === "skipped" && recurringIds.has(line.productId) && !covered.has(line.productId))
+        .map((line) => line.id),
+    );
+    const present = new Set(monthLines.map((line) => line.productId));
+    const additions = recurring
+      .filter((product) => !present.has(product.id))
+      .map((product) => planLine(product, month, get().settings.people, get().lines));
+    if (additions.length === 0 && reviveIds.size === 0) {
+      toast("Esses produtos já estão na lista.");
+      return 0;
+    }
+    set({
+      lines: [
+        ...get().lines.map((line) => (reviveIds.has(line.id) ? { ...line, status: "pending" as const } : line)),
+        ...additions,
+      ],
+    });
     persist(get);
-    toast.success(`${additions.length} itens entraram na lista.`);
-    return additions.length;
+    const count = additions.length + reviveIds.size;
+    toast.success(`${count} ${count === 1 ? "item entrou" : "itens entraram"} na lista.`);
+    return count;
   },
 
   createPlanned: (month, drafts) => {
     const existing = new Set(get().lines.filter((line) => line.monthKey === month).map((line) => line.productId));
     const additions: ShopLine[] = [];
     for (const draft of drafts) {
-      if (existing.has(draft.productId) || draft.qty <= 0) continue;
+      if (existing.has(draft.productId) || draft.qty <= 0 || draft.unitPrice <= 0) continue;
       const product = get().products.find((item) => item.id === draft.productId);
       if (!product) continue;
       additions.push({
@@ -298,14 +321,16 @@ export const useCasa = create<CasaState>((set, get) => ({
     return additions.length;
   },
 
-  resetDemo: async () => {
-    const snapshot = buildSeed(new Date());
-    const month = currentMonthKey();
-    set({ ...snapshot, viewMonth: month, ready: true, error: null });
-    localStorage.setItem("casaflow-month", month);
-    applyTheme(snapshot.settings.theme);
+  clearData: async () => {
+    const current = get();
+    const snapshot = emptyHome(current.settings.theme, {
+      ...current.settings,
+      householdName: current.settings.householdName || defaultSettings.householdName,
+    });
+    if (current.categories.length > 0) snapshot.categories = current.categories;
+    set({ ...snapshot, viewMonth: get().viewMonth || currentMonthKey(), ready: true, error: null });
     await commitSnapshot(snapshot);
-    toast.success("Exemplo da casa restaurado.");
+    toast.success("Produtos e compras apagados.");
   },
 
   importSnapshot: (snapshot) => {

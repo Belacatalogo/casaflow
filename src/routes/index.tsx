@@ -172,9 +172,15 @@ function Dashboard() {
             </ul>
           )}
           {totals.count === 0 ? (
-            <Button asChild className="mt-5">
-              <Link to="/lista">Montar a lista</Link>
-            </Button>
+            products.length === 0 ? (
+              <Button asChild className="mt-5">
+                <Link to="/catalogo">Cadastrar produto</Link>
+              </Button>
+            ) : (
+              <Button asChild className="mt-5">
+                <Link to="/lista">Montar a lista</Link>
+              </Button>
+            )
           ) : null}
         </Card>
       </div>

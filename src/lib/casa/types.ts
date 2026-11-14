@@ -24,7 +24,7 @@ export type Product = {
   unit: string;
   defaultQty: number;
   estimatedUnitPrice: number;
-  /** Days one unit lasts in a household of 3. */
+  /** Days one unit lasts in this household. */
   coverageDays: number;
   recurring: boolean;
   createdAt: string;
@@ -56,8 +56,8 @@ export type Snapshot = {
 };
 
 export const defaultSettings: Settings = {
-  householdName: "Casa da família",
-  people: 3,
-  monthlyBudget: 2200,
+  householdName: "Minha casa",
+  people: 1,
+  monthlyBudget: 0,
   theme: "system",
 };

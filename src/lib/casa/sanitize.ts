@@ -20,8 +20,8 @@ export function sanitizeSnapshot(raw: unknown): Snapshot | null {
     return null;
   }
   const settings: Settings = {
-    householdName: String(value.settings.householdName || "Casa da família").slice(0, 48),
-    people: clamp(Math.round(num(value.settings.people, 3)), 1, 12),
+    householdName: String(value.settings.householdName || "Minha casa").slice(0, 48),
+    people: clamp(Math.round(num(value.settings.people, 1)), 1, 12),
     monthlyBudget: Math.max(0, num(value.settings.monthlyBudget, 0)),
     theme: themeOf(value.settings.theme),
   };

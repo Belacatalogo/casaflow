@@ -174,7 +174,7 @@ export function monthBars(lines: ShopLine[], endMonth: string, count = 4): Month
 export function suggestQty(
   product: Product,
   lines: ShopLine[],
-  people: number,
+  _people: number,
 ): { qty: number; reason: string } {
   const byMonth = new Map<string, number>();
   for (const line of lines) {
@@ -186,9 +186,7 @@ export function suggestQty(
     const avg = quantities.reduce((sum, qty) => sum + qty, 0) / quantities.length;
     return { qty: roundQty(avg), reason: `média de ${quantities.length} meses` };
   }
-  const scale = Math.max(1, people) / 3;
-  const fromCoverage =
-    product.coverageDays > 0 ? (30 / product.coverageDays) * scale : product.defaultQty * scale;
+  const fromCoverage = product.coverageDays > 0 ? 30 / product.coverageDays : product.defaultQty;
   return { qty: roundQty(fromCoverage), reason: "para durar cerca de 30 dias" };
 }
 
@@ -230,13 +228,12 @@ function daysBetween(later: Date, earlier: Date): number {
   return Math.round((utc(later) - utc(earlier)) / 86400000);
 }
 
-export function daysOfStock(product: Product, lines: ShopLine[], people: number, now: Date): number | null {
+export function daysOfStock(product: Product, lines: ShopLine[], _people: number, now: Date): number | null {
   const last = lines
     .filter((line) => line.productId === product.id && line.status === "bought" && line.boughtAt)
     .sort((a, b) => (b.boughtAt ?? "").localeCompare(a.boughtAt ?? ""))[0];
   if (!last?.boughtAt || last.qtyBought <= 0 || product.coverageDays <= 0) return null;
-  const perUnit = product.coverageDays * (3 / Math.max(1, people));
-  const covered = perUnit * last.qtyBought;
+  const covered = product.coverageDays * last.qtyBought;
   return Math.round(covered - daysBetween(now, new Date(last.boughtAt)));
 }
 
@@ -260,7 +257,7 @@ export function buildInsights(input: {
         id: "empty",
         tone: "neutral",
         title: "O mês ainda está vazio",
-        detail: "Monte a lista com o que a casa costuma comprar.",
+        detail: "Cadastre os produtos da casa e monte a lista deste mês.",
       },
     ];
   }

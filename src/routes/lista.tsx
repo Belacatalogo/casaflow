@@ -24,6 +24,7 @@ function ListaPage() {
 
 function Lista() {
   const categories = useCasa((state) => state.categories);
+  const products = useCasa((state) => state.products);
   const lines = useCasa((state) => state.lines);
   const viewMonth = useCasa((state) => state.viewMonth);
   const settings = useCasa((state) => state.settings);
@@ -44,6 +45,7 @@ function Lista() {
   );
   const ordered = [...categories].sort((a, b) => a.order - b.order);
   const skipped = mine.filter((line) => line.status === "skipped");
+  const hasRecurring = products.some((product) => product.recurring);
 
   return (
     <Reveal>
@@ -71,10 +73,20 @@ function Lista() {
         <div className="mt-5">
           <EmptyState
             title={query ? "Nada com esse nome" : "Lista vazia"}
-            detail={query ? "Tente outro nome ou cadastre o produto." : "Toque em montar a lista para trazer o que a casa compra todo mês."}
+            detail={
+              query
+                ? "Tente outro nome ou cadastre o produto."
+                : hasRecurring
+                  ? "Monte a lista com o que se repete todo mês, ou adicione um item."
+                  : "Cadastre o primeiro produto. Depois a lista do mês se monta sozinha."
+            }
             action={
-              query ? null : (
+              query ? null : hasRecurring ? (
                 <Button onClick={() => generateMonth(viewMonth)}>Montar lista</Button>
+              ) : (
+                <Button asChild>
+                  <Link to="/catalogo">Cadastrar produto</Link>
+                </Button>
               )
             }
           />
