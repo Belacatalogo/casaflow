@@ -12,6 +12,7 @@ import {
   Settings,
   ShoppingBasket,
   Store,
+  Warehouse,
 } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
@@ -25,6 +26,7 @@ const NAV = [
   { to: "/", label: "Início", icon: LayoutDashboard, group: "Casa" },
   { to: "/lista", label: "Lista", icon: ShoppingBasket, group: "Casa" },
   { to: "/comprando", label: "Comprar", icon: Store, group: "Casa" },
+  { to: "/casa", label: "Em casa", icon: Warehouse, group: "Casa" },
   { to: "/catalogo", label: "Catálogo", icon: Package, group: "Casa" },
   { to: "/analises", label: "Análises", icon: ChartColumn, group: "Registros" },
   { to: "/historico", label: "Histórico", icon: History, group: "Registros" },
@@ -35,7 +37,7 @@ const PHONE = [
   { to: "/", label: "Início", icon: LayoutDashboard },
   { to: "/lista", label: "Lista", icon: ShoppingBasket },
   { to: "/comprando", label: "Comprar", icon: Store },
-  { to: "/catalogo", label: "Itens", icon: Package },
+  { to: "/casa", label: "Em casa", icon: Warehouse },
 ] as const;
 
 function active(pathname: string, to: string) {

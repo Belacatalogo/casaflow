@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AjustesRouteImport } from './routes/ajustes'
 import { Route as AnalisesRouteImport } from './routes/analises'
+import { Route as CasaRouteImport } from './routes/casa'
 import { Route as CatalogoRouteImport } from './routes/catalogo'
 import { Route as ComprandoRouteImport } from './routes/comprando'
 import { Route as CozinhaRouteImport } from './routes/cozinha'
@@ -34,6 +35,11 @@ const AjustesRoute = AjustesRouteImport.update({
 const AnalisesRoute = AnalisesRouteImport.update({
   id: '/analises',
   path: '/analises',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CasaRoute = CasaRouteImport.update({
+  id: '/casa',
+  path: '/casa',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CatalogoRoute = CatalogoRouteImport.update({
@@ -81,6 +87,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/ajustes': typeof AjustesRoute
   '/analises': typeof AnalisesRoute
+  '/casa': typeof CasaRoute
   '/catalogo': typeof CatalogoRoute
   '/comprando': typeof ComprandoRoute
   '/cozinha': typeof CozinhaRoute
@@ -94,6 +101,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/ajustes': typeof AjustesRoute
   '/analises': typeof AnalisesRoute
+  '/casa': typeof CasaRoute
   '/catalogo': typeof CatalogoRoute
   '/comprando': typeof ComprandoRoute
   '/cozinha': typeof CozinhaRoute
@@ -108,6 +116,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/ajustes': typeof AjustesRoute
   '/analises': typeof AnalisesRoute
+  '/casa': typeof CasaRoute
   '/catalogo': typeof CatalogoRoute
   '/comprando': typeof ComprandoRoute
   '/cozinha': typeof CozinhaRoute
@@ -123,6 +132,7 @@ export interface FileRouteTypes {
     | '/'
     | '/ajustes'
     | '/analises'
+    | '/casa'
     | '/catalogo'
     | '/comprando'
     | '/cozinha'
@@ -136,6 +146,7 @@ export interface FileRouteTypes {
     | '/'
     | '/ajustes'
     | '/analises'
+    | '/casa'
     | '/catalogo'
     | '/comprando'
     | '/cozinha'
@@ -149,6 +160,7 @@ export interface FileRouteTypes {
     | '/'
     | '/ajustes'
     | '/analises'
+    | '/casa'
     | '/catalogo'
     | '/comprando'
     | '/cozinha'
@@ -163,6 +175,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AjustesRoute: typeof AjustesRoute
   AnalisesRoute: typeof AnalisesRoute
+  CasaRoute: typeof CasaRoute
   CatalogoRoute: typeof CatalogoRoute
   ComprandoRoute: typeof ComprandoRoute
   CozinhaRoute: typeof CozinhaRoute
@@ -194,6 +207,13 @@ declare module '@tanstack/react-router' {
       path: '/analises'
       fullPath: '/analises'
       preLoaderRoute: typeof AnalisesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/casa': {
+      id: '/casa'
+      path: '/casa'
+      fullPath: '/casa'
+      preLoaderRoute: typeof CasaRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/catalogo': {
@@ -259,6 +279,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AjustesRoute: AjustesRoute,
   AnalisesRoute: AnalisesRoute,
+  CasaRoute: CasaRoute,
   CatalogoRoute: CatalogoRoute,
   ComprandoRoute: ComprandoRoute,
   CozinhaRoute: CozinhaRoute,

@@ -58,6 +58,7 @@ type CasaState = Snapshot & {
   recordPurchases: (items: { name: string; qty: number; unit?: string; total: number; store?: string; offCard?: boolean }[]) => number;
   markFinished: (productId: string) => void;
   markRemaining: (productId: string, qty: number) => void;
+  lowerPantry: (productId: string) => void;
   accessRole: "pending" | "owner" | "kitchen" | "none";
   homeCode: string;
   remoteStamp: string;
@@ -532,6 +533,18 @@ export const useCasa = create<CasaState>((set, get) => ({
       return;
     }
     noteStock(get, set, productId, { kind: "remaining", qty }, false);
+  },
+
+  lowerPantry: (productId) => {
+    const product = get().products.find((item) => item.id === productId);
+    const month = get().viewMonth;
+    if (!product || !month || (product.onHand ?? 0) <= 0) return;
+    const next = applyPantryChange(snapshotOf(get()), productId, "down", 0, month, new Date());
+    const added = next.lines.length > get().lines.length;
+    set({ products: next.products, stock: next.stock, lines: next.lines });
+    persist(get);
+    const left = next.products.find((item) => item.id === productId)?.onHand ?? 0;
+    toast.success(left === 0 ? (added ? `${product.name} acabou e entrou na lista.` : `${product.name} acabou.`) : `${product.name} diminuiu.`);
   },
 
   clearData: async () => {
