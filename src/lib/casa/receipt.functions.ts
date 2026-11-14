@@ -1,4 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
+import { authMiddleware } from "@/lib/auth/middleware";
 import { isProductBarcode, parseReceiptDocument, receiptStoreName, receiptUrls } from "@/lib/casa/receipt";
 import type { ReceiptItem } from "@/lib/casa/receipt";
 
@@ -42,6 +43,7 @@ async function lookupBarcode(code: string): Promise<ReadCodeResult> {
 }
 
 export const readCode = createServerFn({ method: "POST" })
+  .middleware([authMiddleware])
   .validator((input: { raw: string }) => {
     const raw = String(input?.raw ?? "").trim();
     if (raw.length < 6 || raw.length > 2500) throw new Error("Código inválido.");

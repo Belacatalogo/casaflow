@@ -3,7 +3,9 @@ import { create } from "zustand";
 import { categoryForGuess, guessProduct, sameProductName, tidyProductName } from "@/lib/casa/classify";
 import { currentMonthKey, monthTitle, round2, shiftMonth } from "@/lib/casa/format";
 import { planLine } from "@/lib/casa/logic";
-import { measureUse } from "@/lib/casa/stock";
+import { applyPantryChange } from "@/lib/casa/stock";
+import { adjustPantry, createHome, joinHome, loadHome, saveHome } from "@/lib/casa/home.functions";
+import type { HomeState } from "@/lib/casa/home.functions";
 import { emptyHome, isUntouchedDemo } from "@/lib/casa/seed";
 import { applyTheme, commitSnapshot, loadSnapshot, readThemePreference } from "@/lib/casa/storage";
 import {
@@ -56,6 +58,14 @@ type CasaState = Snapshot & {
   recordPurchases: (items: { name: string; qty: number; unit?: string; total: number; store?: string }[]) => number;
   markFinished: (productId: string) => void;
   markRemaining: (productId: string, qty: number) => void;
+  accessRole: "pending" | "owner" | "kitchen" | "none";
+  homeCode: string;
+  remoteStamp: string;
+  connectHome: () => Promise<void>;
+  pullHome: () => Promise<void>;
+  createHouse: () => Promise<void>;
+  joinHouse: (code: string) => Promise<string | null>;
+  changePantry: (productId: string, action: "down" | "out") => Promise<void>;
 };
 
 function snapshotOf(state: Pick<CasaState, "settings" | "categories" | "products" | "lines" | "stock">): Snapshot {
@@ -70,6 +80,49 @@ function snapshotOf(state: Pick<CasaState, "settings" | "categories" | "products
 
 function persist(get: () => CasaState) {
   commitSnapshot(snapshotOf(get()));
+  if (get().accessRole !== "owner") return;
+  dirty = true;
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(() => {
+    void pushHome(get);
+  }, 800);
+}
+
+let dirty = false;
+let saveTimer: ReturnType<typeof setTimeout> | undefined;
+
+async function pushHome(get: () => CasaState) {
+  try {
+    const result = await saveHome({ data: snapshotOf(get()) });
+    dirty = false;
+    useCasa.setState({ remoteStamp: result.updatedAt });
+  } catch {
+    dirty = true;
+  }
+}
+
+function adoptHome(set: (partial: Partial<CasaState>) => void, get: () => CasaState, home: HomeState) {
+  if (dirty && get().accessRole === "owner" && home.role === "owner") {
+    set({ accessRole: home.role, homeCode: home.code });
+    return;
+  }
+  const snapshot = home.snapshot;
+  const next = {
+    settings: { ...defaultSettings, ...snapshot.settings },
+    categories: snapshot.categories,
+    products: snapshot.products,
+    lines: snapshot.lines,
+    stock: snapshot.stock ?? [],
+  };
+  set({
+    ...next,
+    accessRole: home.role,
+    homeCode: home.code,
+    remoteStamp: home.updatedAt,
+    ready: true,
+  });
+  applyTheme(next.settings.theme);
+  commitSnapshot(next);
 }
 
 let started = false;
@@ -91,21 +144,13 @@ function noteStock(
   const month = get().viewMonth;
   if (!product || !month) return;
   const at = new Date();
-  const learned = measureUse(product, get().lines, get().stock, at, mark);
-  const products = get().products.map((item) =>
-    item.id === productId && learned ? { ...item, coverageDays: learned.coverageDays, coverageSamples: learned.samples } : item,
-  );
-  const stock = [...get().stock, { id: crypto.randomUUID(), productId, at: at.toISOString(), kind: mark.kind, qty: mark.qty }];
-  let lines = get().lines;
-  let added = false;
-  if (addToList && !lines.some((line) => line.productId === productId && line.monthKey === month && line.status === "pending")) {
-    const current = products.find((item) => item.id === productId) ?? product;
-    lines = [...lines, planLine(current, month, get().settings.people, lines)];
-    added = true;
-  }
-  set({ products, stock, lines });
+  const action = mark.kind === "finished" ? "out" : "set";
+  const next = applyPantryChange(snapshotOf(get()), productId, action, mark.qty, month, at);
+  const added = next.lines.length > get().lines.length;
+  set({ products: next.products, stock: next.stock, lines: next.lines });
   persist(get);
-  const duration = learned ? ` Dura cerca de ${learned.coverageDays} dias.` : "";
+  const learned = next.products.find((item) => item.id === productId);
+  const duration = learned && (learned.coverageSamples ?? 0) > (product.coverageSamples ?? 0) ? ` Dura cerca de ${learned.coverageDays} dias.` : "";
   if (mark.kind === "remaining") {
     toast.success(`Anotei o que sobrou de ${product.name}.${duration}`);
     return;
@@ -122,6 +167,9 @@ export const useCasa = create<CasaState>((set, get) => ({
   products: [],
   lines: [],
   stock: [],
+  accessRole: "pending",
+  homeCode: "",
+  remoteStamp: "",
 
   hydrate: async () => {
     if (started) return;
@@ -265,19 +313,27 @@ export const useCasa = create<CasaState>((set, get) => ({
 
   markBought: (id, input) => {
     const when = new Date().toISOString();
+    const line = get().lines.find((item) => item.id === id);
     set({
-      lines: get().lines.map((line) =>
-        line.id === id
+      lines: get().lines.map((item) =>
+        item.id === id
           ? {
-              ...line,
+              ...item,
               status: "bought",
               qtyBought: input.qtyBought,
               actualTotal: input.actualTotal,
               store: input.store.trim(),
-              boughtAt: line.boughtAt ?? when,
+              boughtAt: item.boughtAt ?? when,
             }
-          : line,
+          : item,
       ),
+      products: line
+        ? get().products.map((product) =>
+            product.id === line.productId
+              ? { ...product, onHand: Math.round(((product.onHand ?? 0) + input.qtyBought) * 1000) / 1000 }
+              : product,
+          )
+        : get().products,
     });
     persist(get);
     toast.success("Compra registrada.");
@@ -393,11 +449,17 @@ export const useCasa = create<CasaState>((set, get) => ({
           coverageDays: guess?.coverageDays ?? 30,
           recurring: guess?.recurring ?? false,
           createdAt: now,
+          onHand: qty,
         };
         products.push(product);
       } else {
         const index = products.findIndex((entry) => entry.id === product?.id);
-        products[index] = { ...product, estimatedUnitPrice: unitPrice, unit: receiptUnit || product.unit };
+        products[index] = {
+          ...product,
+          estimatedUnitPrice: unitPrice,
+          unit: receiptUnit || product.unit,
+          onHand: Math.round(((product.onHand ?? 0) + qty) * 1000) / 1000,
+        };
         product = products[index];
       }
       const pendingIndex = lines.findIndex((line) => line.productId === product?.id && line.monthKey === month && line.status === "pending");
@@ -473,6 +535,54 @@ export const useCasa = create<CasaState>((set, get) => ({
     applyTheme(snapshot.settings.theme);
     commitSnapshot(snapshot);
     toast.success("Dados trazidos para este celular.");
+  },
+
+  connectHome: async () => {
+    try {
+      const home = await loadHome();
+      if (!home) {
+        set({ accessRole: "none" });
+        return;
+      }
+      dirty = false;
+      adoptHome(set, get, home);
+    } catch {
+      set({ accessRole: "none" });
+    }
+  },
+
+  pullHome: async () => {
+    if (dirty || get().accessRole === "none" || get().accessRole === "pending") return;
+    try {
+      const home = await loadHome();
+      if (!home || home.updatedAt === get().remoteStamp) return;
+      adoptHome(set, get, home);
+    } catch {
+      /* keep the local copy */
+    }
+  },
+
+  createHouse: async () => {
+    const home = await createHome({ data: snapshotOf(get()) });
+    dirty = false;
+    adoptHome(set, get, home);
+  },
+
+  joinHouse: async (code) => {
+    try {
+      const home = await joinHome({ data: { code } });
+      dirty = false;
+      adoptHome(set, get, home);
+      return null;
+    } catch (error) {
+      return error instanceof Error ? error.message : "Não consegui entrar na casa.";
+    }
+  },
+
+  changePantry: async (productId, action) => {
+    const home = await adjustPantry({ data: { productId, action } });
+    dirty = false;
+    adoptHome(set, get, home);
   },
 }));
 

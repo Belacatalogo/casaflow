@@ -14,8 +14,11 @@ import { Route as AjustesRouteImport } from './routes/ajustes'
 import { Route as AnalisesRouteImport } from './routes/analises'
 import { Route as CatalogoRouteImport } from './routes/catalogo'
 import { Route as ComprandoRouteImport } from './routes/comprando'
+import { Route as CozinhaRouteImport } from './routes/cozinha'
 import { Route as HistoricoRouteImport } from './routes/historico'
 import { Route as ListaRouteImport } from './routes/lista'
+import { Route as LoginRouteImport } from './routes/login'
+import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -42,6 +45,11 @@ const ComprandoRoute = ComprandoRouteImport.update({
   path: '/comprando',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CozinhaRoute = CozinhaRouteImport.update({
+  id: '/cozinha',
+  path: '/cozinha',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const HistoricoRoute = HistoricoRouteImport.update({
   id: '/historico',
   path: '/historico',
@@ -52,6 +60,16 @@ const ListaRoute = ListaRouteImport.update({
   path: '/lista',
   getParentRoute: () => rootRouteImport,
 } as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
+  id: '/api/auth/$',
+  path: '/api/auth/$',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -59,8 +77,11 @@ export interface FileRoutesByFullPath {
   '/analises': typeof AnalisesRoute
   '/catalogo': typeof CatalogoRoute
   '/comprando': typeof ComprandoRoute
+  '/cozinha': typeof CozinhaRoute
   '/historico': typeof HistoricoRoute
   '/lista': typeof ListaRoute
+  '/login': typeof LoginRoute
+  '/api/auth/$': typeof ApiAuthSplatRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -68,8 +89,11 @@ export interface FileRoutesByTo {
   '/analises': typeof AnalisesRoute
   '/catalogo': typeof CatalogoRoute
   '/comprando': typeof ComprandoRoute
+  '/cozinha': typeof CozinhaRoute
   '/historico': typeof HistoricoRoute
   '/lista': typeof ListaRoute
+  '/login': typeof LoginRoute
+  '/api/auth/$': typeof ApiAuthSplatRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -78,8 +102,11 @@ export interface FileRoutesById {
   '/analises': typeof AnalisesRoute
   '/catalogo': typeof CatalogoRoute
   '/comprando': typeof ComprandoRoute
+  '/cozinha': typeof CozinhaRoute
   '/historico': typeof HistoricoRoute
   '/lista': typeof ListaRoute
+  '/login': typeof LoginRoute
+  '/api/auth/$': typeof ApiAuthSplatRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -89,8 +116,11 @@ export interface FileRouteTypes {
     | '/analises'
     | '/catalogo'
     | '/comprando'
+    | '/cozinha'
     | '/historico'
     | '/lista'
+    | '/login'
+    | '/api/auth/$'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -98,8 +128,11 @@ export interface FileRouteTypes {
     | '/analises'
     | '/catalogo'
     | '/comprando'
+    | '/cozinha'
     | '/historico'
     | '/lista'
+    | '/login'
+    | '/api/auth/$'
   id:
     | '__root__'
     | '/'
@@ -107,8 +140,11 @@ export interface FileRouteTypes {
     | '/analises'
     | '/catalogo'
     | '/comprando'
+    | '/cozinha'
     | '/historico'
     | '/lista'
+    | '/login'
+    | '/api/auth/$'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -117,8 +153,11 @@ export interface RootRouteChildren {
   AnalisesRoute: typeof AnalisesRoute
   CatalogoRoute: typeof CatalogoRoute
   ComprandoRoute: typeof ComprandoRoute
+  CozinhaRoute: typeof CozinhaRoute
   HistoricoRoute: typeof HistoricoRoute
   ListaRoute: typeof ListaRoute
+  LoginRoute: typeof LoginRoute
+  ApiAuthSplatRoute: typeof ApiAuthSplatRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -158,6 +197,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ComprandoRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/cozinha': {
+      id: '/cozinha'
+      path: '/cozinha'
+      fullPath: '/cozinha'
+      preLoaderRoute: typeof CozinhaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/historico': {
       id: '/historico'
       path: '/historico'
@@ -172,6 +218,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ListaRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/auth/$': {
+      id: '/api/auth/$'
+      path: '/api/auth/$'
+      fullPath: '/api/auth/$'
+      preLoaderRoute: typeof ApiAuthSplatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -181,8 +241,11 @@ const rootRouteChildren: RootRouteChildren = {
   AnalisesRoute: AnalisesRoute,
   CatalogoRoute: CatalogoRoute,
   ComprandoRoute: ComprandoRoute,
+  CozinhaRoute: CozinhaRoute,
   HistoricoRoute: HistoricoRoute,
   ListaRoute: ListaRoute,
+  LoginRoute: LoginRoute,
+  ApiAuthSplatRoute: ApiAuthSplatRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

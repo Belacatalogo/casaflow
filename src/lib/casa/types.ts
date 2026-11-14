@@ -33,6 +33,8 @@ export type Product = {
   coverageSamples?: number;
   recurring: boolean;
   createdAt: string;
+  /** Quantity still at home, in the product unit. Unknown until a purchase or a count. */
+  onHand?: number;
 };
 
 export type LineStatus = "pending" | "bought" | "skipped";

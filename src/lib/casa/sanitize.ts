@@ -49,6 +49,7 @@ export function sanitizeSnapshot(raw: unknown): Snapshot | null {
       coverageSamples: Math.max(0, Math.round(num(product.coverageSamples, 0))),
       recurring: Boolean(product.recurring),
       createdAt: typeof product.createdAt === "string" ? product.createdAt : new Date().toISOString(),
+      onHand: product.onHand == null ? undefined : Math.max(0, num(product.onHand, 0)),
     }));
   const lines: ShopLine[] = value.lines
     .filter((line) => line && typeof line.id === "string" && typeof line.monthKey === "string")

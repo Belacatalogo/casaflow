@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { UserButton } from "@/lib/auth/gates";
 import { toast } from "sonner";
 import { useEffect, useState } from "react";
 import { PageIntro, Reveal } from "@/components/casa/chrome";
@@ -43,6 +44,7 @@ function SettingsScreen() {
   const removeCategory = useCasa((state) => state.removeCategory);
   const clearData = useCasa((state) => state.clearData);
   const importSnapshot = useCasa((state) => state.importSnapshot);
+  const homeCode = useCasa((state) => state.homeCode);
   const [name, setName] = useState(settings.householdName);
   const [budget, setBudget] = useState(decimalToInput(settings.monthlyBudget));
   const [categoryName, setCategoryName] = useState("");
@@ -72,7 +74,17 @@ function SettingsScreen() {
 
   return (
     <Reveal>
-      <PageIntro eyebrow="Ajustes" title="A casa" lede="Limite do mês, pessoas e categorias. Tudo fica só neste celular." />
+      <PageIntro eyebrow="Ajustes" title="A casa" lede="Limite do mês, pessoas e categorias. A casa fica na sua conta, no celular e no tablet." />
+      <Card className="mt-5">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <h2 className="font-display text-2xl text-ink">Conta</h2>
+            <p className="mt-1 text-sm text-muted">Código da cozinha: {homeCode || "—"}</p>
+          </div>
+          <UserButton />
+        </div>
+        <p className="mt-3 text-pretty text-sm text-muted">Quem entra com esse código só vê o que ainda tem em casa.</p>
+      </Card>
 
       <Card className="mt-5">
         <div className="grid gap-4 sm:grid-cols-2">

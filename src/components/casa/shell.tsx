@@ -1,4 +1,4 @@
-import { Link, useRouterState } from "@tanstack/react-router";
+import { Link, Navigate, useRouterState } from "@tanstack/react-router";
 import {
   ChartColumn,
   ChevronLeft,
@@ -13,6 +13,7 @@ import {
   Store,
 } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
+import { useCurrentUserState } from "@/lib/auth/use-current-user";
 import { applyTheme } from "@/lib/casa/storage";
 import { useCasa } from "@/lib/casa/store";
 import { Button } from "@/components/ui/controls";
@@ -42,6 +43,10 @@ export function AppShell({ children }: { children: ReactNode }) {
   const error = useCasa((state) => state.error);
   const settings = useCasa((state) => state.settings);
   const ready = useCasa((state) => state.ready);
+  const accessRole = useCasa((state) => state.accessRole);
+  const connectHome = useCasa((state) => state.connectHome);
+  const pullHome = useCasa((state) => state.pullHome);
+  const { user, isPending } = useCurrentUserState();
   const lines = useCasa((state) => state.lines);
   const viewMonth = useCasa((state) => state.viewMonth);
   const updateSettings = useCasa((state) => state.updateSettings);
@@ -56,6 +61,13 @@ export function AppShell({ children }: { children: ReactNode }) {
   useEffect(() => {
     void hydrate();
   }, [hydrate]);
+
+  useEffect(() => {
+    if (!ready || !user) return;
+    void connectHome();
+    const timer = window.setInterval(() => void pullHome(), 8000);
+    return () => window.clearInterval(timer);
+  }, [ready, user, connectHome, pullHome]);
 
   useEffect(() => {
     if (!ready || settings.theme !== "system") return;
@@ -88,6 +100,23 @@ export function AppShell({ children }: { children: ReactNode }) {
       setQuery("");
       setOverride(null);
     }
+  }
+
+  if (pathname === "/login") {
+    return <div className="min-h-screen bg-bg text-ink">{children}</div>;
+  }
+
+  if (isPending || !ready || (user && accessRole === "pending")) {
+    return <main className="grid min-h-screen place-items-center bg-bg text-muted">Abrindo…</main>;
+  }
+
+  if (!user) return <Navigate to="/login" />;
+
+  if (accessRole === "none") return <JoinHouse />;
+
+  if (accessRole === "kitchen") {
+    if (pathname !== "/cozinha") return <Navigate to="/cozinha" />;
+    return <div className="min-h-screen bg-bg px-4 py-8 text-ink">{children}</div>;
   }
 
   if (error) {
@@ -231,5 +260,58 @@ export function AppShell({ children }: { children: ReactNode }) {
         <main className="mx-auto w-full max-w-5xl px-4 py-5 lg:px-8 lg:py-8">{children}</main>
       </div>
     </div>
+  );
+}
+
+function JoinHouse() {
+  const createHouse = useCasa((state) => state.createHouse);
+  const joinHouse = useCasa((state) => state.joinHouse);
+  const [code, setCode] = useState("");
+  const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  return (
+    <main className="grid min-h-screen place-items-center bg-bg px-6 text-ink">
+      <div className="w-full max-w-sm">
+        <h1 className="font-display text-4xl tracking-tight">Qual é a casa?</h1>
+        <p className="mt-2 text-pretty text-muted">Quem cuida da lista cria a casa. Quem só anota a cozinha entra com o código.</p>
+        <button
+          type="button"
+          disabled={busy}
+          className="mt-6 h-12 w-full rounded-full bg-hero text-sm font-medium text-on-hero"
+          onClick={() => {
+            setBusy(true);
+            void createHouse()
+              .catch(() => setError("Não consegui criar a casa."))
+              .finally(() => setBusy(false));
+          }}
+        >
+          Esta é a minha casa
+        </button>
+        <form
+          className="mt-6 flex flex-col gap-2"
+          onSubmit={(event) => {
+            event.preventDefault();
+            setBusy(true);
+            void joinHouse(code).then((message) => {
+              setError(message ?? "");
+              setBusy(false);
+            });
+          }}
+        >
+          <input
+            className="h-12 rounded-full border border-line bg-surface px-4 text-center text-lg tracking-[0.3em] uppercase"
+            value={code}
+            onChange={(event) => setCode(event.target.value.toUpperCase())}
+            placeholder="CÓDIGO"
+            aria-label="Código da casa"
+          />
+          {error ? <p className="text-sm text-terra-deep">{error}</p> : null}
+          <button type="submit" disabled={busy || code.trim().length < 4} className="h-12 rounded-full bg-sunken text-sm font-medium text-ink">
+            Entrar com o código
+          </button>
+        </form>
+      </div>
+    </main>
   );
 }
