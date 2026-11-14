@@ -91,7 +91,7 @@ export function PageIntro({
   );
 }
 
-export function TextLink({ to, children }: { to: "/" | "/lista" | "/comprando" | "/catalogo" | "/analises" | "/historico" | "/ajustes"; children: ReactNode }) {
+export function TextLink({ to, children }: { to: "/" | "/lista" | "/catalogo" | "/analises" | "/historico" | "/ajustes"; children: ReactNode }) {
   return (
     <Link to={to} className="text-sm font-medium text-terra-deep underline-offset-4 hover:underline">
       {children}

@@ -11,7 +11,6 @@ import {
   Search,
   Settings,
   ShoppingBasket,
-  Store,
   Warehouse,
 } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
@@ -25,7 +24,6 @@ import { cn } from "@/lib/utils";
 const NAV = [
   { to: "/", label: "Início", icon: LayoutDashboard, group: "Casa" },
   { to: "/lista", label: "Lista", icon: ShoppingBasket, group: "Casa" },
-  { to: "/comprando", label: "Comprar", icon: Store, group: "Casa" },
   { to: "/casa", label: "Em casa", icon: Warehouse, group: "Casa" },
   { to: "/catalogo", label: "Catálogo", icon: Package, group: "Casa" },
   { to: "/analises", label: "Análises", icon: ChartColumn, group: "Registros" },
@@ -36,7 +34,6 @@ const NAV = [
 const PHONE = [
   { to: "/", label: "Início", icon: LayoutDashboard },
   { to: "/lista", label: "Lista", icon: ShoppingBasket },
-  { to: "/comprando", label: "Comprar", icon: Store },
   { to: "/casa", label: "Em casa", icon: Warehouse },
 ] as const;
 
@@ -185,7 +182,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                 )}
               >
                 <Icon className="size-5" />
-                {item.to === "/comprando" && pending > 0 ? (
+                {item.to === "/lista" && pending > 0 ? (
                   <span className="absolute right-1.5 top-1.5 size-2 rounded-full bg-gold" />
                 ) : null}
                 <span className="pointer-events-none absolute left-full ml-3 hidden rounded-full bg-hero px-3 py-1 text-xs text-on-hero opacity-0 group-hover:opacity-100 lg:block">
@@ -247,7 +244,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                       >
                         <Icon className="size-5 shrink-0" />
                         <span className="flex-1">{item.label}</span>
-                        {item.to === "/comprando" && pending > 0 ? (
+                        {item.to === "/lista" && pending > 0 ? (
                           <span className="rounded-full bg-white/15 px-2 py-0.5 text-xs tabular-nums text-gold">{pending}</span>
                         ) : null}
                       </Link>

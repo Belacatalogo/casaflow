@@ -121,9 +121,6 @@ function Lista() {
           <Plus className="size-4" />
           Adicionar
         </Button>
-        <Button asChild variant="secondary">
-          <Link to="/comprando">Modo compra</Link>
-        </Button>
       </div>
 
       {known.length > 0 ? (

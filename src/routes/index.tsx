@@ -169,7 +169,7 @@ function Dashboard() {
           </div>
           {live.pendingCount > 0 ? (
             <Button asChild className="mt-5 bg-gold text-hero hover:bg-gold">
-              <Link to="/comprando">Ir comprar · {live.pendingCount}</Link>
+              <Link to="/lista">Ver a lista · {live.pendingCount}</Link>
             </Button>
           ) : null}
         </div>
