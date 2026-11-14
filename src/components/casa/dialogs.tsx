@@ -1,0 +1,385 @@
+import { toast } from "sonner";
+import { useEffect, useMemo, useState } from "react";
+import { SUGGESTED_STORES } from "@/lib/casa/seed";
+import { decimalToInput, formatMoney, formatQty, parseDecimal } from "@/lib/casa/format";
+import { lineEstimate, suggestQty } from "@/lib/casa/logic";
+import { useCasa } from "@/lib/casa/store";
+import type { Product, ShopLine } from "@/lib/casa/types";
+import { CategoryGlyph, ICON_OPTIONS } from "@/components/casa/icons";
+import { Button, Field, Modal, fieldClass } from "@/components/ui/controls";
+import { cn } from "@/lib/utils";
+
+const SWATCHES = ["terra", "gold", "clay", "sand", "ink", "bark"] as const;
+
+function Toggle({ on, label, onClick }: { on: boolean; label: string; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={on}
+      aria-label={label}
+      onClick={onClick}
+      className={cn("h-7 w-12 rounded-full p-1 transition-colors", on ? "bg-terra-fill" : "bg-line")}
+    >
+      <span className={cn("block size-5 rounded-full bg-surface transition-transform", on && "translate-x-5")} />
+    </button>
+  );
+}
+
+type ProductDraft = {
+  name: string;
+  categoryId: string;
+  unit: string;
+  defaultQty: string;
+  estimatedUnitPrice: string;
+  coverageDays: string;
+  recurring: boolean;
+  include: boolean;
+};
+
+function emptyDraft(categoryId: string): ProductDraft {
+  return {
+    name: "",
+    categoryId,
+    unit: "un",
+    defaultQty: "1",
+    estimatedUnitPrice: "",
+    coverageDays: "30",
+    recurring: true,
+    include: true,
+  };
+}
+
+function fromProduct(product: Product): ProductDraft {
+  return {
+    name: product.name,
+    categoryId: product.categoryId,
+    unit: product.unit,
+    defaultQty: decimalToInput(product.defaultQty),
+    estimatedUnitPrice: decimalToInput(product.estimatedUnitPrice),
+    coverageDays: String(product.coverageDays),
+    recurring: product.recurring,
+    include: false,
+  };
+}
+
+export function ProductDialog({
+  open,
+  product,
+  onOpenChange,
+}: {
+  open: boolean;
+  product?: Product | null;
+  onOpenChange: (open: boolean) => void;
+}) {
+  const categories = useCasa((state) => state.categories);
+  const saveProduct = useCasa((state) => state.saveProduct);
+  const addProductToMonth = useCasa((state) => state.addProductToMonth);
+  const [draft, setDraft] = useState<ProductDraft>(() => emptyDraft(categories[0]?.id ?? ""));
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    if (!open) return;
+    setErrors({});
+    setDraft(product ? fromProduct(product) : emptyDraft(categories[0]?.id ?? ""));
+  }, [open, product, categories]);
+
+  function save() {
+    const defaultQty = parseDecimal(draft.defaultQty);
+    const estimatedUnitPrice = parseDecimal(draft.estimatedUnitPrice);
+    const coverageDays = parseDecimal(draft.coverageDays);
+    const next: Record<string, string> = {};
+    if (draft.name.trim().length < 2) next.name = "Dê um nome ao produto.";
+    if (!draft.categoryId) next.categoryId = "Escolha uma categoria.";
+    if (!draft.unit.trim()) next.unit = "Informe a unidade.";
+    if (defaultQty == null || defaultQty <= 0) next.defaultQty = "Quantidade maior que zero.";
+    if (estimatedUnitPrice == null || estimatedUnitPrice < 0) next.estimatedUnitPrice = "Informe o preço estimado.";
+    if (coverageDays == null || coverageDays < 1) next.coverageDays = "Quantos dias uma unidade dura?";
+    setErrors(next);
+    if (Object.keys(next).length || defaultQty == null || estimatedUnitPrice == null || coverageDays == null) return;
+    const id = saveProduct(
+      {
+        name: draft.name,
+        categoryId: draft.categoryId,
+        unit: draft.unit.trim(),
+        defaultQty,
+        estimatedUnitPrice,
+        coverageDays: Math.round(coverageDays),
+        recurring: draft.recurring,
+      },
+      product?.id,
+    );
+    if (!product && draft.include) {
+      const added = addProductToMonth(id);
+      toast.success(added ? "Produto criado e incluído na lista." : "Produto criado.");
+    } else {
+      toast.success(product ? "Produto atualizado." : "Produto criado.");
+    }
+    onOpenChange(false);
+  }
+
+  return (
+    <Modal
+      open={open}
+      onOpenChange={onOpenChange}
+      title={product ? "Editar produto" : "Novo produto"}
+      description="Nome, unidade e o quanto costuma durar. A sugestão de 30 dias usa esse ritmo."
+    >
+      <form
+        className="flex flex-col gap-4"
+        onSubmit={(event) => {
+          event.preventDefault();
+          save();
+        }}
+      >
+        <Field label="Nome" error={errors.name}>
+          <input className={fieldClass} value={draft.name} onChange={(event) => setDraft({ ...draft, name: event.target.value })} />
+        </Field>
+        <Field label="Categoria" error={errors.categoryId}>
+          <select className={fieldClass} value={draft.categoryId} onChange={(event) => setDraft({ ...draft, categoryId: event.target.value })}>
+            {categories.map((category) => (
+              <option key={category.id} value={category.id}>
+                {category.name}
+              </option>
+            ))}
+          </select>
+        </Field>
+        <div className="grid grid-cols-2 gap-3">
+          <Field label="Unidade" error={errors.unit} hint="kg, L, un, pct">
+            <input className={fieldClass} value={draft.unit} onChange={(event) => setDraft({ ...draft, unit: event.target.value })} />
+          </Field>
+          <Field label="Quantidade habitual" error={errors.defaultQty}>
+            <input inputMode="decimal" className={fieldClass} value={draft.defaultQty} onChange={(event) => setDraft({ ...draft, defaultQty: event.target.value })} />
+          </Field>
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <Field label="Preço estimado" error={errors.estimatedUnitPrice}>
+            <input inputMode="decimal" className={fieldClass} value={draft.estimatedUnitPrice} onChange={(event) => setDraft({ ...draft, estimatedUnitPrice: event.target.value })} placeholder="0,00" />
+          </Field>
+          <Field label="Dura quantos dias" error={errors.coverageDays} hint="Uma unidade, para 3 pessoas">
+            <input inputMode="numeric" className={fieldClass} value={draft.coverageDays} onChange={(event) => setDraft({ ...draft, coverageDays: event.target.value })} />
+          </Field>
+        </div>
+        <div className="flex items-center justify-between gap-3 rounded-2xl bg-sunken px-3 py-3">
+          <span className="text-sm text-ink">Repetir todo mês</span>
+          <Toggle on={draft.recurring} label="Repetir todo mês" onClick={() => setDraft({ ...draft, recurring: !draft.recurring })} />
+        </div>
+        {!product ? (
+          <div className="flex items-center justify-between gap-3 rounded-2xl bg-sunken px-3 py-3">
+            <span className="text-sm text-ink">Incluir na lista deste mês</span>
+            <Toggle on={draft.include} label="Incluir na lista deste mês" onClick={() => setDraft({ ...draft, include: !draft.include })} />
+          </div>
+        ) : null}
+        <Button type="submit" size="lg" className="w-full">
+          Salvar
+        </Button>
+      </form>
+    </Modal>
+  );
+}
+
+export function AddDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
+  const products = useCasa((state) => state.products);
+  const categories = useCasa((state) => state.categories);
+  const lines = useCasa((state) => state.lines);
+  const viewMonth = useCasa((state) => state.viewMonth);
+  const people = useCasa((state) => state.settings.people);
+  const addProductToMonth = useCasa((state) => state.addProductToMonth);
+  const [query, setQuery] = useState("");
+  const [creating, setCreating] = useState(false);
+
+  useEffect(() => {
+    if (!open) return;
+    setQuery("");
+    setCreating(false);
+  }, [open]);
+
+  const pending = useMemo(
+    () => new Set(lines.filter((line) => line.monthKey === viewMonth && line.status === "pending").map((line) => line.productId)),
+    [lines, viewMonth],
+  );
+  const visible = products.filter((product) => product.name.toLowerCase().includes(query.trim().toLowerCase()));
+
+  return (
+    <>
+      <Modal open={open && !creating} onOpenChange={onOpenChange} title="Adicionar à lista" description="Escolha do catálogo ou cadastre um produto novo.">
+        <input className={fieldClass} placeholder="Buscar produto" value={query} onChange={(event) => setQuery(event.target.value)} />
+        <ul className="mt-3 max-h-80 divide-y divide-line overflow-y-auto">
+          {visible.map((product) => {
+            const suggestion = suggestQty(product, lines, people);
+            const category = categories.find((item) => item.id === product.categoryId);
+            return (
+              <li key={product.id} className="flex items-center gap-3 py-3">
+                <span className="grid size-10 place-items-center rounded-2xl bg-sunken text-ink">
+                  <CategoryGlyph name={category?.icon ?? "basket"} className="size-5" />
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate font-medium text-ink">{product.name}</span>
+                  <span className="block text-sm text-muted">
+                    {formatQty(suggestion.qty)} {product.unit} · {suggestion.reason}
+                  </span>
+                </span>
+                <Button
+                  variant={pending.has(product.id) ? "secondary" : "primary"}
+                  onClick={() => {
+                    const added = addProductToMonth(product.id);
+                    if (added) {
+                      toast.success(`${product.name} entrou na lista.`);
+                      onOpenChange(false);
+                    }
+                  }}
+                >
+                  {pending.has(product.id) ? "Na lista" : "Incluir"}
+                </Button>
+              </li>
+            );
+          })}
+        </ul>
+        {visible.length === 0 ? <p className="py-6 text-sm text-muted">Nenhum produto com esse nome.</p> : null}
+        <Button variant="secondary" className="mt-3 w-full" onClick={() => setCreating(true)}>
+          Cadastrar produto novo
+        </Button>
+      </Modal>
+      <ProductDialog open={open && creating} onOpenChange={(next) => (next ? setCreating(true) : onOpenChange(false))} />
+    </>
+  );
+}
+
+export function BuyDialog({ line, onOpenChange }: { line: ShopLine | null; onOpenChange: (open: boolean) => void }) {
+  const markBought = useCasa((state) => state.markBought);
+  const [qty, setQty] = useState("1");
+  const [total, setTotal] = useState("");
+  const [store, setStore] = useState("");
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    if (!line) return;
+    setQty(decimalToInput(line.qtyBought || line.qtyPlanned));
+    setTotal(decimalToInput(line.actualTotal ?? lineEstimate(line)));
+    setStore(line.store);
+    setError("");
+  }, [line]);
+
+  function save() {
+    if (!line) return;
+    const qtyBought = parseDecimal(qty);
+    const actualTotal = parseDecimal(total);
+    if (qtyBought == null || qtyBought <= 0) {
+      setError("Informe a quantidade comprada.");
+      return;
+    }
+    if (actualTotal == null || actualTotal <= 0) {
+      setError("Informe o valor pago.");
+      return;
+    }
+    markBought(line.id, { qtyBought, actualTotal, store });
+    onOpenChange(false);
+  }
+
+  return (
+    <Modal open={Boolean(line)} onOpenChange={onOpenChange} title={line ? line.name : "Registrar compra"} description="Anote o que saiu do caixa, não só o preço de prateleira.">
+      {line ? (
+        <form
+          className="flex flex-col gap-4"
+          onSubmit={(event) => {
+            event.preventDefault();
+            save();
+          }}
+        >
+          <p className="text-sm text-muted">
+            Planejado: {formatQty(line.qtyPlanned)} {line.unit} · estimado {formatMoney(lineEstimate(line))}
+          </p>
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="Quantidade">
+              <input inputMode="decimal" className={fieldClass} value={qty} onChange={(event) => setQty(event.target.value)} />
+            </Field>
+            <Field label="Valor pago">
+              <input inputMode="decimal" className={fieldClass} value={total} onChange={(event) => setTotal(event.target.value)} />
+            </Field>
+          </div>
+          <Field label="Onde comprou" hint="Opcional">
+            <input className={fieldClass} value={store} onChange={(event) => setStore(event.target.value)} placeholder="Mercado, feira, padaria" />
+          </Field>
+          <div className="flex flex-wrap gap-2">
+            {SUGGESTED_STORES.map((name) => (
+              <button key={name} type="button" className={cn("h-9 rounded-full px-3 text-sm", store === name ? "bg-terra-soft text-terra-deep" : "bg-sunken text-ink")} onClick={() => setStore(name)}>
+                {name}
+              </button>
+            ))}
+          </div>
+          {error ? <p className="text-sm text-terra-deep">{error}</p> : null}
+          <Button type="submit" size="lg" className="w-full">
+            Registrar compra
+          </Button>
+        </form>
+      ) : null}
+    </Modal>
+  );
+}
+
+export function PlanDialog({ line, onOpenChange }: { line: ShopLine | null; onOpenChange: (open: boolean) => void }) {
+  const updateLine = useCasa((state) => state.updateLine);
+  const removeLine = useCasa((state) => state.removeLine);
+  const [qty, setQty] = useState("1");
+  const [price, setPrice] = useState("");
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    if (!line) return;
+    setQty(decimalToInput(line.qtyPlanned));
+    setPrice(decimalToInput(line.estimatedUnitPrice));
+    setError("");
+  }, [line]);
+
+  function save() {
+    if (!line) return;
+    const qtyPlanned = parseDecimal(qty);
+    const estimatedUnitPrice = parseDecimal(price);
+    if (qtyPlanned == null || qtyPlanned <= 0 || estimatedUnitPrice == null || estimatedUnitPrice < 0) {
+      setError("Quantidade e preço precisam ser válidos.");
+      return;
+    }
+    updateLine(line.id, { qtyPlanned, estimatedUnitPrice });
+    toast.success("Item atualizado.");
+    onOpenChange(false);
+  }
+
+  return (
+    <Modal open={Boolean(line)} onOpenChange={onOpenChange} title={line?.name ?? "Editar item"} description="Ajuste o que pretende levar antes de passar no caixa.">
+      {line ? (
+        <form
+          className="flex flex-col gap-4"
+          onSubmit={(event) => {
+            event.preventDefault();
+            save();
+          }}
+        >
+          <div className="grid grid-cols-2 gap-3">
+            <Field label={`Quantidade (${line.unit})`}>
+              <input inputMode="decimal" className={fieldClass} value={qty} onChange={(event) => setQty(event.target.value)} />
+            </Field>
+            <Field label="Preço estimado da unidade">
+              <input inputMode="decimal" className={fieldClass} value={price} onChange={(event) => setPrice(event.target.value)} />
+            </Field>
+          </div>
+          {error ? <p className="text-sm text-terra-deep">{error}</p> : null}
+          <Button type="submit" size="lg" className="w-full">
+            Salvar
+          </Button>
+          <Button
+            variant="soft"
+            className="w-full"
+            onClick={() => {
+              removeLine(line.id);
+              onOpenChange(false);
+            }}
+          >
+            Remover da lista
+          </Button>
+        </form>
+      ) : null}
+    </Modal>
+  );
+}
+
+export { ICON_OPTIONS, SWATCHES };

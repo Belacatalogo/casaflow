@@ -1,0 +1,80 @@
+Você é um desenvolvedor full-stack sênior. Crie um **aplicativo web completo e profissional** (não um HTML estático, não um único arquivo, não um projeto simples de demonstração).
+
+### Requisitos Técnicos Obrigatórios
+- Deve ser um projeto **Next.js 15** (App Router) + TypeScript completo, com estrutura de pastas profissional.
+- O projeto deve estar pronto para ser colocado em um repositório **GitHub** e ter deploy direto na **Vercel** (sem necessidade de configurações complexas).
+- Deve incluir:
+  - `package.json` com todas as dependências
+  - Configuração correta do Next.js
+  - Componentes reutilizáveis
+  - Rotas/páginas organizadas
+  - Persistência de dados (localStorage + IndexedDB)
+  - Responsividade total
+  - PWA básico
+- O resultado final deve ser um aplicativo real que o usuário possa clonar do GitHub, rodar localmente e fazer deploy na Vercel em poucos minutos.
+
+### Visão do Produto
+Crie o sistema **CasaFlow** — um organizador mensal de compras domésticas completo e premium.
+
+O usuário:
+1. Cadastra os itens que precisa comprar no mês
+2. Registra os valores reais conforme vai comprando
+3. O sistema mantém histórico, faz projeções de gastos e analisa o consumo real para sugerir quantidades ideais de cada produto para durar o mês inteiro.
+
+### Stack Técnica
+- Next.js 15 (App Router) + TypeScript
+- Tailwind CSS + shadcn/ui
+- Framer Motion
+- Lucide React
+- Recharts
+- Zustand
+- Persistência com IndexedDB (Dexie.js) + localStorage
+- Pronto para Vercel
+
+### Identidade Visual (Premium)
+- Design sofisticado, limpo e moderno
+- Paleta: off-white quente (#FAF8F5) no light mode e #0F0E0C no dark mode
+- Acentos em terracota (#E07A5F) e dourado antigo (#C9A86A)
+- Tipografia elegante (serif nos títulos + Inter no corpo)
+- Animações suaves e microinterações
+- Dark mode completo e bem feito
+- Sensação de produto final, não de template
+
+### Funcionalidades Principais
+
+1. **Dashboard**
+   - Visão do mês atual
+   - Projeção de gastos vs. realizado
+   - Gráficos de evolução
+   - Insights de consumo
+
+2. **Lista Mensal de Compras**
+   - Adicionar/editar itens (nome, categoria, quantidade, unidade, preço estimado)
+   - Marcar como comprado e registrar preço real
+   - Modo “Comprando agora” otimizado para celular
+
+3. **Catálogo de Produtos**
+   - Produtos recorrentes com histórico de preços e consumo médio
+   - Sugestão automática de quantidade ideal para durar 30 dias
+
+4. **Análises**
+   - Consumo médio mensal por produto
+   - Ranking do que mais pesa no orçamento
+   - Comparativo mês a mês
+   - Projeção inteligente do próximo mês
+
+5. **Histórico completo** + filtros
+
+6. **Configurações** (orçamento, categorias personalizadas, tema, etc.)
+
+### Qualidade Exigida
+- Código limpo, tipado e organizado
+- Componentes bem separados
+- Estados de loading, empty states e feedback visual em todas as ações
+- Interface 100% em português brasileiro
+- Dados de exemplo já inclusos para demonstração
+- README claro com instruções de instalação e deploy na Vercel
+
+**Importante:** Entregue um projeto Next.js completo e funcional, com estrutura de pastas profissional, pronto para GitHub e Vercel. Não entregue HTML estático, não entregue um único arquivo, não entregue um protótipo superficial.
+
+Comece criando a estrutura completa do projeto e as páginas principais com o design system aplicado.
