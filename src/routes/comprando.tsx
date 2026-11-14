@@ -6,7 +6,7 @@ import { ReceiptDialog } from "@/components/casa/receipt-dialog";
 import { Button, EmptyState, PageSkeleton } from "@/components/ui/controls";
 import { formatMoney, formatQty } from "@/lib/casa/format";
 import { lineEstimate } from "@/lib/casa/logic";
-import { adviseLine } from "@/lib/casa/modes";
+import { adviseLine, missingLabel, pendingSummary } from "@/lib/casa/modes";
 import { useCasa } from "@/lib/casa/store";
 import type { ShopLine } from "@/lib/casa/types";
 
@@ -66,9 +66,8 @@ function Shop() {
       <p className="text-xs tracking-[0.16em] text-muted uppercase">No mercado</p>
       <h1 className="mt-1 font-display text-[2rem] leading-none tracking-tight text-ink">Falta pegar</h1>
       <p className="mt-2 text-pretty text-muted">
-        {pending.length === 0
-          ? "Nada pendente neste mês."
-          : `${pending.length} ${pending.length === 1 ? "item" : "itens"} · falta cerca de ${formatMoney(pendingTotal)}`}
+        {missingLabel(pendingSummary(lines, products, viewMonth, mode, now))}
+        {pending.length > 0 ? ` · cerca de ${formatMoney(pendingTotal)}` : ""}
       </p>
         {mode === "economia" ? <p className="mt-2 text-sm text-muted">Modo economia: só o essencial.</p> : null}
         {mode === "acabando" ? <p className="mt-2 text-sm text-muted">Modo acabando: só o que está no fim.</p> : null}

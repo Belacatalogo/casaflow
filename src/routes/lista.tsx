@@ -8,7 +8,8 @@ import { ReceiptDialog } from "@/components/casa/receipt-dialog";
 import { Button, Card, EmptyState, PageSkeleton, fieldClass } from "@/components/ui/controls";
 import { formatMoney, formatQty } from "@/lib/casa/format";
 import { lineActual, summarizeMonth } from "@/lib/casa/logic";
-import { adviseLine, linesForMode } from "@/lib/casa/modes";
+import { adviseLine, linesForMode, missingLabel, pendingSummary } from "@/lib/casa/modes";
+import { coverageText } from "@/lib/casa/stock";
 import { useCasa } from "@/lib/casa/store";
 import type { ShopLine } from "@/lib/casa/types";
 import { cn } from "@/lib/utils";
@@ -43,6 +44,7 @@ function Lista() {
   const now = useMemo(() => new Date(), []);
   const mode = settings.listMode ?? "completa";
   const scoped = useMemo(() => linesForMode(lines, products, mode, now), [lines, products, mode, now]);
+  const summary = pendingSummary(lines, products, viewMonth, mode, now);
   const totals = summarizeMonth(scoped, viewMonth, settings.monthlyBudget);
   const mine = useMemo(
     () =>
@@ -70,13 +72,18 @@ function Lista() {
             <h1 className="mt-1 font-display text-[2rem] leading-none tracking-tight text-ink">
               {totals.boughtCount} de {totals.count}
             </h1>
-            <p className="mt-2 text-sm text-muted">Previsto {formatMoney(totals.estimatedAll)}</p>
+            <p className="mt-2 text-sm text-muted">
+              {missingLabel(summary)} · previsto {formatMoney(totals.estimatedAll)}
+            </p>
             <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-sunken">
               <div className="h-full rounded-full bg-terra" style={{ width: `${done}%` }} />
             </div>
           </>
         ) : (
-          <h1 className="mt-1 font-display text-[2rem] leading-none tracking-tight text-ink">Nada neste mês</h1>
+          <>
+            <h1 className="mt-1 font-display text-[2rem] leading-none tracking-tight text-ink">Nada neste mês</h1>
+            {summary.hidden > 0 ? <p className="mt-2 text-sm text-muted">{missingLabel(summary)}</p> : null}
+          </>
         )}
         <div className="mt-4 rounded-full bg-sunken">
           <MonthSwitcher className="w-full" titleClassName="min-w-0 flex-1 truncate px-1 text-base sm:text-lg" />
@@ -147,6 +154,7 @@ function Lista() {
                 </div>
                 <ul>
                   {rows.map((line) => {
+                    const product = products.find((item) => item.id === line.productId);
                     const bought = line.status === "bought";
                     const advice = bought ? null : adviceFor(line);
                     const qty = bought ? line.qtyBought : (advice?.qty ?? line.qtyPlanned);
@@ -175,6 +183,7 @@ function Lista() {
                             {formatQty(qty)} {line.unit}
                             {line.store ? ` · ${line.store}` : ""}
                             {bought ? " · pago" : ""}
+                            {product && coverageText(product) ? ` · ${coverageText(product).toLowerCase()}` : ""}
                           </p>
                           {advice && advice.qty !== line.qtyPlanned ? <p className="text-sm text-gold-deep">{advice.reason}</p> : null}
                         </div>

@@ -70,3 +70,17 @@ export function linesForMode(lines: ShopLine[], products: Product[], mode: ListM
   }
   return next;
 }
+
+export function pendingSummary(lines: ShopLine[], products: Product[], month: string, mode: ListMode, now = new Date()) {
+  const pending = lines.filter((line) => line.monthKey === month && line.status === "pending");
+  const byId = new Map(products.map((product) => [product.id, product]));
+  const open = pending.filter((line) => adviseLine(line, byId.get(line.productId), lines, mode, now).show).length;
+  return { open, hidden: pending.length - open, total: pending.length };
+}
+
+export function missingLabel(summary: { open: number; hidden: number }): string {
+  if (summary.open === 0 && summary.hidden === 0) return "Nada faltando";
+  const base = summary.open === 1 ? "Falta 1" : `Faltam ${summary.open}`;
+  if (summary.hidden > 0) return `${base} · ${summary.hidden} ${summary.hidden === 1 ? "pode esperar" : "podem esperar"}`;
+  return base;
+}

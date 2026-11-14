@@ -7,7 +7,7 @@ import { PaceChart } from "@/components/casa/charts";
 import { Button, Card, PageSkeleton } from "@/components/ui/controls";
 import { formatMoney, greeting, monthTitle } from "@/lib/casa/format";
 import { buildInsights, categorySlices, paceSeries, summarizeMonth } from "@/lib/casa/logic";
-import { linesForMode } from "@/lib/casa/modes";
+import { linesForMode, missingLabel, pendingSummary } from "@/lib/casa/modes";
 import { useCasa } from "@/lib/casa/store";
 import { cn } from "@/lib/utils";
 
@@ -61,6 +61,7 @@ function Dashboard() {
           {settings.people} {settings.people === 1 ? "pessoa" : "pessoas"} · só neste celular
           {mode === "economia" ? " · previsão no modo economia" : ""}
           {mode === "acabando" ? " · previsão só do que está acabando" : ""}
+          {` · ${missingLabel(pendingSummary(lines, products, viewMonth, mode, now)).toLowerCase()}`}
         </p>
         <div className="mt-4 rounded-full bg-sunken">
           <MonthSwitcher className="w-full" titleClassName="min-w-0 flex-1 truncate px-1 text-base sm:text-lg" />

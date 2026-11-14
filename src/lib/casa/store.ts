@@ -3,6 +3,7 @@ import { create } from "zustand";
 import { categoryForGuess, guessProduct, sameProductName, tidyProductName } from "@/lib/casa/classify";
 import { currentMonthKey, monthTitle, round2, shiftMonth } from "@/lib/casa/format";
 import { planLine } from "@/lib/casa/logic";
+import { measureUse } from "@/lib/casa/stock";
 import { emptyHome, isUntouchedDemo } from "@/lib/casa/seed";
 import { applyTheme, commitSnapshot, loadSnapshot, readThemePreference } from "@/lib/casa/storage";
 import {
@@ -53,14 +54,17 @@ type CasaState = Snapshot & {
   clearData: () => Promise<void>;
   importSnapshot: (snapshot: Snapshot) => void;
   recordPurchases: (items: { name: string; qty: number; unit?: string; total: number; store?: string }[]) => number;
+  markFinished: (productId: string) => void;
+  markRemaining: (productId: string, qty: number) => void;
 };
 
-function snapshotOf(state: Pick<CasaState, "settings" | "categories" | "products" | "lines">): Snapshot {
+function snapshotOf(state: Pick<CasaState, "settings" | "categories" | "products" | "lines" | "stock">): Snapshot {
   return {
     settings: state.settings,
     categories: state.categories,
     products: state.products,
     lines: state.lines,
+    stock: state.stock ?? [],
   };
 }
 
@@ -76,6 +80,39 @@ function initialMonth(): string {
   return stored && MONTH_RE.test(stored) ? stored : "";
 }
 
+function noteStock(
+  get: () => CasaState,
+  set: (partial: Partial<CasaState>) => void,
+  productId: string,
+  mark: { kind: "finished" | "remaining"; qty: number },
+  addToList: boolean,
+) {
+  const product = get().products.find((item) => item.id === productId);
+  const month = get().viewMonth;
+  if (!product || !month) return;
+  const at = new Date();
+  const learned = measureUse(product, get().lines, get().stock, at, mark);
+  const products = get().products.map((item) =>
+    item.id === productId && learned ? { ...item, coverageDays: learned.coverageDays, coverageSamples: learned.samples } : item,
+  );
+  const stock = [...get().stock, { id: crypto.randomUUID(), productId, at: at.toISOString(), kind: mark.kind, qty: mark.qty }];
+  let lines = get().lines;
+  let added = false;
+  if (addToList && !lines.some((line) => line.productId === productId && line.monthKey === month && line.status === "pending")) {
+    const current = products.find((item) => item.id === productId) ?? product;
+    lines = [...lines, planLine(current, month, get().settings.people, lines)];
+    added = true;
+  }
+  set({ products, stock, lines });
+  persist(get);
+  const duration = learned ? ` Dura cerca de ${learned.coverageDays} dias.` : "";
+  if (mark.kind === "remaining") {
+    toast.success(`Anotei o que sobrou de ${product.name}.${duration}`);
+    return;
+  }
+  toast.success(added ? `${product.name} acabou e entrou na lista.${duration}` : `${product.name} acabou.${duration}`);
+}
+
 export const useCasa = create<CasaState>((set, get) => ({
   ready: false,
   error: null,
@@ -84,6 +121,7 @@ export const useCasa = create<CasaState>((set, get) => ({
   categories: [],
   products: [],
   lines: [],
+  stock: [],
 
   hydrate: async () => {
     if (started) return;
@@ -100,6 +138,7 @@ export const useCasa = create<CasaState>((set, get) => ({
       set({
         ...snapshot,
         settings: { ...defaultSettings, ...snapshot.settings },
+        stock: snapshot.stock ?? [],
         ready: true,
         error: null,
         viewMonth: storedMonth || currentMonthKey(),
@@ -339,7 +378,8 @@ export const useCasa = create<CasaState>((set, get) => ({
       if (rawName.length < 2 || total <= 0) continue;
       const guess = guessProduct(rawName);
       const category = categoryForGuess(categories, guess) ?? categories[0];
-      const unit = (item.unit || guess?.unit || "un").trim() || "un";
+      const receiptUnit = item.unit?.trim() || "";
+      const unit = (receiptUnit || guess?.unit || "un").trim() || "un";
       const unitPrice = round2(total / qty);
       let product = products.find((entry) => sameProductName(entry.name, rawName));
       if (!product) {
@@ -357,14 +397,23 @@ export const useCasa = create<CasaState>((set, get) => ({
         products.push(product);
       } else {
         const index = products.findIndex((entry) => entry.id === product?.id);
-        products[index] = { ...product, estimatedUnitPrice: unitPrice };
+        products[index] = { ...product, estimatedUnitPrice: unitPrice, unit: receiptUnit || product.unit };
         product = products[index];
       }
       const pendingIndex = lines.findIndex((line) => line.productId === product?.id && line.monthKey === month && line.status === "pending");
-      const store = item.store?.trim() ?? "";
+      const storeName = item.store?.trim() ?? "";
+      const lineUnit = receiptUnit || product.unit;
       if (pendingIndex >= 0) {
         const line = lines[pendingIndex];
-        lines[pendingIndex] = { ...line, status: "bought", qtyBought: qty, actualTotal: total, store: store || line.store, boughtAt: now };
+        lines[pendingIndex] = {
+          ...line,
+          status: "bought",
+          unit: lineUnit,
+          qtyBought: qty,
+          actualTotal: total,
+          store: storeName || line.store,
+          boughtAt: now,
+        };
       } else {
         lines.push({
           id: crypto.randomUUID(),
@@ -372,14 +421,14 @@ export const useCasa = create<CasaState>((set, get) => ({
           productId: product.id,
           categoryId: product.categoryId,
           name: product.name,
-          unit: product.unit,
+          unit: lineUnit,
           qtyPlanned: qty,
           estimatedUnitPrice: unitPrice,
           qtyBought: qty,
           actualTotal: total,
           status: "bought",
           boughtAt: now,
-          store,
+          store: storeName,
         });
       }
       count += 1;
@@ -392,6 +441,19 @@ export const useCasa = create<CasaState>((set, get) => ({
     persist(get);
     toast.success(count === 1 ? "Compra lançada." : `${count} compras lançadas.`);
     return count;
+  },
+
+  markFinished: (productId) => {
+    noteStock(get, set, productId, { kind: "finished", qty: 0 }, true);
+  },
+
+  markRemaining: (productId, qty) => {
+    if (qty < 0) return;
+    if (qty === 0) {
+      noteStock(get, set, productId, { kind: "finished", qty: 0 }, true);
+      return;
+    }
+    noteStock(get, set, productId, { kind: "remaining", qty }, false);
   },
 
   clearData: async () => {

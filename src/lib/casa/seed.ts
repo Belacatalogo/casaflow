@@ -56,6 +56,7 @@ export function emptyHome(theme?: ThemeMode, settings?: Settings): Snapshot {
     categories: starterCategories(),
     products: [],
     lines: [],
+    stock: [],
   };
 }
 

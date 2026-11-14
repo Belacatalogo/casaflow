@@ -29,6 +29,8 @@ export type Product = {
   estimatedUnitPrice: number;
   /** Days one unit lasts in this household. */
   coverageDays: number;
+  /** How many real measurements produced coverageDays. Zero means it is still a guess. */
+  coverageSamples?: number;
   recurring: boolean;
   createdAt: string;
 };
@@ -53,11 +55,20 @@ export type ShopLine = {
   hold?: boolean;
 };
 
+export type StockEvent = {
+  id: string;
+  productId: string;
+  at: string;
+  kind: "finished" | "remaining";
+  qty: number;
+};
+
 export type Snapshot = {
   settings: Settings;
   categories: Category[];
   products: Product[];
   lines: ShopLine[];
+  stock: StockEvent[];
 };
 
 export const defaultSettings: Settings = {

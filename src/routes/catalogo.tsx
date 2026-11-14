@@ -5,9 +5,10 @@ import { useMemo, useState } from "react";
 import { Reveal } from "@/components/casa/chrome";
 import { ProductDialog } from "@/components/casa/dialogs";
 import { CategoryGlyph } from "@/components/casa/icons";
-import { Button, Card, EmptyState, PageSkeleton, fieldClass } from "@/components/ui/controls";
-import { formatMoney, formatQty } from "@/lib/casa/format";
+import { Button, Card, EmptyState, Modal, PageSkeleton, fieldClass } from "@/components/ui/controls";
+import { formatMoney, formatQty, parseDecimal } from "@/lib/casa/format";
 import { productHistory, suggestQty } from "@/lib/casa/logic";
+import { coverageText } from "@/lib/casa/stock";
 import { useCasa } from "@/lib/casa/store";
 import type { Product } from "@/lib/casa/types";
 import { cn } from "@/lib/utils";
@@ -30,11 +31,15 @@ function Catalog() {
   const people = useCasa((state) => state.settings.people);
   const viewMonth = useCasa((state) => state.viewMonth);
   const addProductToMonth = useCasa((state) => state.addProductToMonth);
+  const markFinished = useCasa((state) => state.markFinished);
+  const markRemaining = useCasa((state) => state.markRemaining);
   const removeProduct = useCasa((state) => state.removeProduct);
   const [query, setQuery] = useState("");
   const [categoryId, setCategoryId] = useState("all");
   const [editing, setEditing] = useState<Product | null>(null);
   const [creating, setCreating] = useState(false);
+  const [leftover, setLeftover] = useState<Product | null>(null);
+  const [leftQty, setLeftQty] = useState("");
   const [openHistory, setOpenHistory] = useState<string | null>(null);
 
   const visible = useMemo(
@@ -105,8 +110,21 @@ function Catalog() {
                   {" · "}
                   sugerido {formatQty(suggestion.qty)} {product.unit}
                   {product.recurring ? " · todo mês" : ""}
+                  {coverageText(product) ? ` · ${coverageText(product).toLowerCase()}` : ""}
                 </p>
-                <div className="mt-4 flex flex-wrap gap-2">
+                <div className="mt-4 grid grid-cols-2 gap-2">
+                  <Button onClick={() => markFinished(product.id)}>Acabou</Button>
+                  <Button
+                    variant="secondary"
+                    onClick={() => {
+                      setLeftover(product);
+                      setLeftQty("");
+                    }}
+                  >
+                    Sobrou
+                  </Button>
+                </div>
+                <div className="mt-2 flex flex-wrap gap-2">
                   <Button
                     disabled={pending}
                     onClick={() => {
@@ -161,6 +179,24 @@ function Catalog() {
           setEditing(null);
         }
       }} />
+      <Modal open={Boolean(leftover)} onOpenChange={(open) => !open && setLeftover(null)} title={leftover ? `Quanto ainda tem de ${leftover.name}?` : "Sobrou"} description="A data é de agora. Não precisa preencher.">
+        <form
+          className="flex flex-col gap-3"
+          onSubmit={(event) => {
+            event.preventDefault();
+            if (!leftover) return;
+            const qty = parseDecimal(leftQty);
+            if (qty == null || qty < 0) return;
+            markRemaining(leftover.id, qty);
+            setLeftover(null);
+          }}
+        >
+          <input className={fieldClass} inputMode="decimal" placeholder={leftover ? `Quantidade em ${leftover.unit}` : "Quantidade"} value={leftQty} onChange={(event) => setLeftQty(event.target.value)} />
+          <Button type="submit" size="lg">
+            Guardar
+          </Button>
+        </form>
+      </Modal>
     </Reveal>
   );
 }

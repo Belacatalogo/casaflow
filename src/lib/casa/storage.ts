@@ -62,15 +62,17 @@ async function readIdb(): Promise<Snapshot | null> {
   const database = getDb();
   const seeded = await database.meta.get("seeded");
   if (!seeded) return null;
-  const [categories, products, lines, settingsRow] = await Promise.all([
+  const [categories, products, lines, settingsRow, stockRow] = await Promise.all([
     database.categories.toArray(),
     database.products.toArray(),
     database.lines.toArray(),
     database.meta.get("settings"),
+    database.meta.get("stock"),
   ]);
   if (!settingsRow) return null;
   const settings = JSON.parse(settingsRow.value) as Settings;
-  return { settings, categories, products, lines };
+  const stock = stockRow ? (JSON.parse(stockRow.value) as Snapshot["stock"]) : [];
+  return { settings, categories, products, lines, stock };
 }
 
 function readLocal(): Snapshot | null {
@@ -110,6 +112,7 @@ async function writeNow(snapshot: Snapshot) {
     await database.products.bulkAdd(snapshot.products);
     await database.lines.bulkAdd(snapshot.lines);
     await database.meta.put({ id: "settings", value: JSON.stringify(snapshot.settings) });
+    await database.meta.put({ id: "stock", value: JSON.stringify(snapshot.stock ?? []) });
     await database.meta.put({ id: "seeded", value: "1" });
   });
 }

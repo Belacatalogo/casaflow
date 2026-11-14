@@ -1,6 +1,6 @@
 import { clamp } from "@/lib/casa/format";
 import { listModeOf } from "@/lib/casa/modes";
-import type { Category, LineStatus, Product, Settings, ShopLine, Snapshot, Swatch, ThemeMode } from "@/lib/casa/types";
+import type { Category, LineStatus, Product, Settings, ShopLine, Snapshot, StockEvent, Swatch, ThemeMode } from "@/lib/casa/types";
 
 const SWATCHES = new Set<Swatch>(["terra", "gold", "clay", "sand", "ink", "bark"]);
 const STATUSES = new Set<LineStatus>(["pending", "bought", "skipped"]);
@@ -46,6 +46,7 @@ export function sanitizeSnapshot(raw: unknown): Snapshot | null {
       defaultQty: Math.max(0.5, num(product.defaultQty, 1)),
       estimatedUnitPrice: Math.max(0, num(product.estimatedUnitPrice, 0)),
       coverageDays: Math.max(1, num(product.coverageDays, 30)),
+      coverageSamples: Math.max(0, Math.round(num(product.coverageSamples, 0))),
       recurring: Boolean(product.recurring),
       createdAt: typeof product.createdAt === "string" ? product.createdAt : new Date().toISOString(),
     }));
@@ -70,5 +71,16 @@ export function sanitizeSnapshot(raw: unknown): Snapshot | null {
         hold: line.hold === true ? true : undefined,
       };
     });
-  return { settings, categories, products, lines };
+  const stock: StockEvent[] = Array.isArray(value.stock)
+    ? value.stock
+        .filter((event) => event && typeof event.id === "string" && typeof event.productId === "string")
+        .map((event) => ({
+          id: event.id,
+          productId: event.productId,
+          at: typeof event.at === "string" ? event.at : new Date().toISOString(),
+          kind: event.kind === "remaining" ? "remaining" : "finished",
+          qty: Math.max(0, num(event.qty, 0)),
+        }))
+    : [];
+  return { settings, categories, products, lines, stock };
 }
